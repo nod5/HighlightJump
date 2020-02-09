@@ -65,7 +65,7 @@ Icon CC-BY-3.0 by p.yusukekamiyamane.com
 
 # FAQ
 
-**Q** Why does HighlightJump exist?
+**Q** Why does HighlightJump exist?  
 **A** HighlightJump is "feature request ware". I hope someone builds this into SumatraPDF.  
 
 **Q** Why does HighlightJump only work in SumatraPDF Prerelease?  
@@ -80,7 +80,7 @@ Icon CC-BY-3.0 by p.yusukekamiyamane.com
 **Q** How do the quick jump keys work?  
 **A** Hold down one of `1 / 2 / 3 / 4` to store the current pagenumber. Later tap (short press) that key again to jump to the stored page. While on that page tap again to undo the jump. Press `5` to show a list of stored pages. Use it for temporary jumps. Clears when HighlightJump is closed. Independent from highlights. Similar to [MuPDF Viewer](https://mupdf.com/docs/manual-mupdf-gl.html) numbered bookmarks.  
 
-**Q** What file encoding should be used?
+**Q** What file encoding should be used?  
 **A** The correct encoding for `HighlightJump.ahk` is `UTF-8 BOM`. See AutoHotkey [FAQ](https://www.autohotkey.com/docs/FAQ.htm#nonascii). The download from GitHub has that encoding.  
 
 # Experimental: improved methods
