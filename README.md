@@ -87,7 +87,7 @@ Icon CC-BY-3.0 by p.yusukekamiyamane.com
 HighlightJump has experimental methods to get the active document file path and canvas position via SendMessage. Improvements compared to default methods: faster, more reliable, silent, and no `FullPathInTitle` setting required.  
 
 To try the experimental features:  
-- Edit SumatraPDF C++ source via instructions in folder `SumatraPDF_modifications` and compile as `32-bit Debug` version.  
+- Edit [SumatraPDF](https://github.com/sumatrapdfreader/sumatrapdf) C++ source via instructions in folder `SumatraPDF_modifications` and compile as `32-bit Debug` version.  
 - In `HighlightJump.ahk.ini` set `Experimental=1`.  
 
 See also SumatraPDF repo issues [1411](https://github.com/sumatrapdfreader/sumatrapdf/issues/1411) and  [1412](https://github.com/sumatrapdfreader/sumatrapdf/issues/1412)  
