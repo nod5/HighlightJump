@@ -4,7 +4,7 @@ AutoHotkey app to add, remove and jump to color highlights in SumatraPDF
 
 Version 2020-02-09  -  Free software GPLv3  -  by Nod5  
   
-[![HighlightJump Feature Overview](https://github.com/nod5/HighlightJump/blob/master/images/HighlightJump_youtube_screenshot.png?raw=true)](https://www.youtube.com/watch?v=AcVI616W5D8)
+[![HighlightJump Feature Overview](https://github.com/nod5/HighlightJump/blob/master/images/HighlightJump_youtube_screenshot.png?raw=true)](https://www.youtube.com/watch?v=AcVI616W5D8 "HighlightJump Feature Overview")
 
 # Setup  
 1. Get [SumatraPDF Prerelease](https://www.sumatrapdfreader.org/prerelease.html) version  
