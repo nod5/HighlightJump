@@ -1,6 +1,6 @@
 ﻿; ---------------------------------------------------------------------
 ; HighlightJump
-; 2020-02-09
+; 2020-02-14
 ; ---------------------------------------------------------------------
 ; AutoHotkey app to add, remove and jump between highlights in SumatraPDF
 ; Free software GPLv3
@@ -21,9 +21,9 @@ SetControlDelay, -1
 ; highlight colors
 ; note: keep colorcodes lowercase like SumatraPDF does in .smx
 vRed    := "ffcccc"
-vGreen  := "95e495" 
+vGreen  := "95e495"
 vBlue   := "0099ff"
-vYellow := "ffff60" 
+vYellow := "ffff60"
 JumpColor := vYellow
 
 ; initialize quick jump array
@@ -51,7 +51,7 @@ if !A_IsCompiled
 
 vIniFile := A_ScriptFullPath ".ini"
 If !FileExist(vIniFile)
-  ;create default ini file
+  ; create default ini file
   FileAppend,[Settings]`nRedGreenRG=1`nExperimental=0, % vIniFile
 
 ; read ini and set color annotation hotkeys
@@ -99,6 +99,16 @@ global vLegacyMethods := vExperimental ? 0 : 1
 global vFilepathReturn := ""
 ; note: global above makes the vars super-global
 ; https://www.autohotkey.com/docs/Functions.htm#SuperGlobal
+
+; list of extensions that HighlightJump supports
+vSupportedExtensions := "|pdf|djvu|djv|chm|epub|mobi|txt|log|"
+; note: used to check if document extension is unsupported
+; - if unsupported and single char hotkey     then pass key to SumatraPDF and stop
+; - if unsupported and mouse/modifier hotkey  then stop
+
+; list of extensions that require .epub pt position bug/issue workaround
+vEpubExtensions      := "|chm|epub|mobi|txt|log|"
+
 Return
 
 
@@ -113,7 +123,7 @@ vReadMe =
   
   Add, remove and jump to color highlights in SumatraPDF
 
-  version 2020-02-09  -  free software GPLv3  -  by github.com/nod5
+  version 2020-02-14  -  free software GPLv3  -  by github.com/nod5
 
   SETUP:
   1. Get SumatraPDF Prerelease version
@@ -210,10 +220,9 @@ Return
 #IfWinActive, ahk_class SUMATRA_PDF_FRAME
 
 
-
-;-----------------------------------------
+; -----------------------------------------
 ; quick jump keys
-;-----------------------------------------
+; -----------------------------------------
 ; 1 2 3 4: quick jump keys
 ; hold      = store current page
 ; tap       = jump to stored page
@@ -223,9 +232,12 @@ Return
 2::
 3::
 4::
-  If PassthroughKeyIfNotCanvasFocus(A_ThisLabel)
+  If PassthroughIfNotCanvasFocus(A_ThisLabel)
     Return
-  vFile := SumatraGetActiveDocumentFilePath()
+  GetFile(vFile) ; ByRef
+  If PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, A_ThisHotkey)
+    Return
+  
   vStorePage := 0
   ToolTip
   
@@ -238,7 +250,7 @@ Return
     SetTimer, quick_jump_key_duration, off
   }
 
-  If !GetVars(vFile, vSmx, vPage, vLen, "smx not required") ; ByRef
+  If !GetPageLen(vPage, vLen) ; ByRef
     Return
   
   If vStorePage
@@ -263,6 +275,7 @@ Return
   ToolTip
 Return
 
+
 quick_jump_key_duration:
   vDuration := A_TickCount - t1
   if (vDuration < 400)
@@ -272,11 +285,16 @@ quick_jump_key_duration:
   SetTimer, quick_jump_key_duration, off
 Return
 
+
 ; menu overview of quick jump stored pages
 5::
-  If !GetVars(vFile, vSmx, vPage, vLen, "smx not required") ; ByRef
+  If PassthroughIfNotCanvasFocus(A_ThisHotkey)
     Return
-  
+  GetFile(vFile) ; ByRef
+  If PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, A_ThisHotkey)
+    Return
+  If !vFile
+    Return
   ; clear any old menu
   Menu, QuickJumpMenu, Add, menu_no_action
   Menu, QuickJumpMenu, Delete
@@ -296,9 +314,9 @@ Return
 menu_no_action:
 Return
 
-;-----------------------------------------
+; -----------------------------------------
 ; end quick jump keys
-;-----------------------------------------
+; -----------------------------------------
 
 
 
@@ -307,7 +325,14 @@ Return
 ; note: state "off" also disables page jumps, erase under mouse, and delete all on page
 ;       but shortcuts to add highlight still work and will toggle highlights on
 #a::
-  vFile := SumatraGetActiveDocumentFilePath()
+  If !CanvasFocused()
+    Return
+  GetFile(vFile) ; ByRef
+  If !SupportedExtension(vFile, vSupportedExtensions)
+    Return
+  if !vFile
+    Return
+  
   Tooltip, % FileExist(vFile ".smx") ? "highlights off" : "highlights on"
   ToggleHighlightsOnOff(vFile)
   SetTimer, tooltip_timeout, -600
@@ -322,8 +347,14 @@ Return
 
 ; Ctrl + Delete: Remove all highlighting on active page
 ^Del::
-  If !GetVars(vFile, vSmx, vPage, vLen) ; ByRef
+  If !CanvasFocused()
     Return
+  GetFile(vFile) ; ByRef
+  If !SupportedExtension(vFile, vSupportedExtensions)
+    Return
+  If !vFile or !GetSmx(vSmx, vFile) or !GetPageLen(vPage, vLen) ; ByRef vSmx ; ByRef
+    Return
+
   ; remove each [highlight] that contains "page = <active page number>"
   ; note: RegExReplace defaults to replacing each match
   vSmx := RegExReplace(vSmx, "Us)\[highlight]\Rpage = " vPage "\R.*opacity.*(?:\R\R|\R)", "")
@@ -337,10 +368,12 @@ Return
 Rbutton & Lbutton::
   Send {Lbutton up}
 e::
-  If PassthroughKeyIfNotCanvasFocus(A_ThisLabel)
+  If PassthroughIfNotCanvasFocus(A_ThisHotkey)
     Return
-
-  If !GetVars(vFile, vSmx, vPage, vLen) ; ByRef 
+  GetFile(vFile) ; ByRef
+  If PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, A_ThisHotkey)
+    Return
+  If !vFile or !GetSmx(vSmx, vFile) or !GetPageLen(vPage, vLen) ; ByRef vSmx ; ByRef
     Return
   
   Sleep 50
@@ -356,7 +389,7 @@ e::
     SetSystemCursor("CROSS")
 
   ; is document epub or pdf?
-  vIsEpub := SubStr(vFile, -4) = ".epub" ? 1 : 0
+  vIsEpub := RequiresEpubFix(vFile, vEpubExtensions)
   
   ; timer to delete all highlights under mouse until hotkey release
   vOldSmx := vSmx
@@ -409,6 +442,7 @@ remove_highlight_under_mouse:
   ;   FontSize = 12.5
   ; then the text will reflow and no longer line up with the highlights.
   ; There is no workaround for that at the moment.
+  ; Note: same issue for filetypes |epub|mobi|chm|txt|log| and maybe more
   vMultiplier := vIsEpub ? 1.346364632809646 : 1
   ; note: rounding always needed if vLegacyMethods because then mx/my has decimal
   mx := round(mx * vMultiplier)
@@ -444,17 +478,17 @@ return
 
 
 ; jump to first/last page with highlight
-;^#Home::
 ^Home::
-;^#End::
 ^End::
 ; jump to first/last page with (color filter) highlight
-;+^#Home::
 +^Home::
-;+^#End::
 +^End::
-
-  If !GetVars(vFile, vSmx, vPage, vLen) ; ByRef 
+  If !CanvasFocused()
+    Return
+  GetFile(vFile) ; ByRef
+  If !SupportedExtension(vFile, vSupportedExtensions)
+    Return
+  If !vFile or !GetSmx(vSmx, vFile) or !GetPageLen(vPage, vLen) ; ByRef vSmx ; ByRef
     Return
 
   ; split smx to array of highlights
@@ -500,11 +534,6 @@ Return
 
 
 ; set jump filter color
-;+^#a:: FlashColorSquare(100, JumpColor := vYellow )
-;+^#y:: FlashColorSquare(100, JumpColor := vRed    )
-;+^#u:: FlashColorSquare(100, JumpColor := vGreen  )
-;+^#d:: FlashColorSquare(100, JumpColor := vBlue   )
-
 filter_yellow:
 filter_red:
 filter_green:
@@ -517,18 +546,12 @@ Switch StrReplace(A_ThisLabel, "filter_", "")
   Case "green"  : FlashColorSquare(100, JumpColor := vGreen  )
   Case "blue"   : FlashColorSquare(100, JumpColor := vBlue   )
 } 
-
-;+^#a:: FlashColorSquare(100, JumpColor := vYellow )
-;+^#y:: FlashColorSquare(100, JumpColor := vRed    )
-;+^#u:: FlashColorSquare(100, JumpColor := vGreen  )
-;+^#d:: FlashColorSquare(100, JumpColor := vBlue   )
 Return
 
 
 ; cycle jump filter color
-;+^#Space::
 +^a::
-  If PassthroughKeyIfNotCanvasFocus(A_ThisLabel)
+  If !CanvasFocused()
     Return
   Switch JumpColor
   {
@@ -547,17 +570,17 @@ Return
 ; jump to next/prev page with highlight
 Rbutton & WheelDown::
 Rbutton & WheelUp::
-;^#PgDn::
 ^PgDn::
-;^#PgUp::
 ^PgUp::
 ; jump to next/prev page with (color filter) highlight
-;+^#PgDn::
 +^PgDn::
-;+^#PgUp::
 +^PgUp::
-
-  If !GetVars(vFile, vSmx, vPage, vLen) ; ByRef 
+  If !CanvasFocused()
+    Return
+  GetFile(vFile) ; ByRef
+  If !SupportedExtension(vFile, vSupportedExtensions)
+    Return
+  If !vFile or !GetSmx(vSmx, vFile) or !GetPageLen(vPage, vLen) ; ByRef vSmx ; ByRef
     Return
 
   ; Max number of pages to loop through when looking for nearest jump point
@@ -600,17 +623,17 @@ Return
 ; Make blue rectangle highlight at mouse pointer
 Rbutton & Mbutton::
 d::
-
-  If PassthroughKeyIfNotCanvasFocus(A_ThisLabel)
+  If PassthroughIfNotCanvasFocus(A_ThisHotkey)
+    Return
+  GetFile(vFile) ; ByRef
+  If PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, A_ThisHotkey)
     Return
 
-  vFile := SumatraGetActiveDocumentFilePath()
+  If !vFile or !GetPageLen(vPage, vLen) ; ByRef
+    Return
 
   ToggleHighlightsOnOff(vFile, "on")
-
-  If !GetVars(vFile, vSmx, vPage, vLen, "smx not required") ; ByRef 
-    Return
-
+  
   If vLegacyMethods
   {
     ; prepare SumatraPDF UI notification for document pt position reading
@@ -629,7 +652,8 @@ d::
     Return
 
   ; workaround for SumatraPDF .epub pt position bug/issue (see earlier code comments)
-  vIsEpub := SubStr(vFile, -4) = ".epub" ? 1 : 0
+  vIsEpub := RequiresEpubFix(vFile, vEpubExtensions)
+    
   vMultiplier := vIsEpub ? 1.346364632809646 : 1
   ; note: rounding always needed if vLegacyMethods because then mx/my has decimal
   vPosX := round(vPosX * vMultiplier)
@@ -664,20 +688,18 @@ Return
 ; highlight selected text and save to .smx
 
 a::  ; yellow, or longpress to cycle yellow -> red -> green -> cancel
-;y::  ; red
-;u::  ; green
 highlight_yellow:
 highlight_red:
 highlight_green:
-
 Lbutton & Rbutton::  ; yellow, or longpress to cycle
-  
-  If PassthroughKeyIfNotCanvasFocus(A_ThisLabel)
+  If PassthroughIfNotCanvasFocus(A_ThisHotkey)
     Return
-
-  vFile := SumatraGetActiveDocumentFilePath()
+  GetFile(vFile) ; ByRef
+  If PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, vHotkey)
+    Return
   If !vFile
     Return
+
   vFlashColor := ""
 
   If (A_ThisLabel = "a") or (A_ThisLabel = "Lbutton & Rbutton")
@@ -706,8 +728,6 @@ Lbutton & Rbutton::  ; yellow, or longpress to cycle
   ; set color based on which key (A/Y/U) or longpress A flashcolor
   Switch A_ThisLabel
   {
-;    Case "y": vHighlightColor := vRed
-;    Case "u": vHighlightColor := vGreen
     Case "highlight_yellow" : vHighlightColor := vYellow
     Case "highlight_red"    : vHighlightColor := vRed
     Case "highlight_green"  : vHighlightColor := vGreen
@@ -716,29 +736,38 @@ Lbutton & Rbutton::  ; yellow, or longpress to cycle
   If vFlashColor
     vHighlightColor := vFlashColor
 
-  ; If non-yellow highlight action then first measure .smx length
+  ; If non-yellow highlight action then first get .smx length before new annotation
   If (vHighlightColor != vYellow)
   {
-    If !GetVars(vFile, vSmx, vPage, vLen) ; ByRef
-      Return
-    ; StrLen method: count string len before new annotation
+    GetSmx(vSmx, vFile) ; ByRef vSmx
+    ; note: sets length 0 if no smx file yet exists
     vSmxLen := StrLen(vSmx)
   }
   
   ; Make annotation (yellow)
   Send a
- 
+  
   ; Save annotation to .smx (still yellow)  
   SaveAnnotationToSmx()
-
+  
   ; If non-yellow highlight action then change new annotation color in .smx file
   If (vHighlightColor != vYellow)
   {
     ; Wait for SumatraPDF to finish writing .smx
-    ; Try renaming file to itself, returns ErrorLevel true while .smx is written
+    ; Method: Try renaming file to itself, returns ErrorLevel true while .smx is written
+    ; ---------------------------------------------
+    ; Background on SumatraPDF C++ source
+    ; ---------------------------------------------
+    ; - In SumatraPDF.cpp function SaveFileModifications() calls FileWrite()
+    ;   and in FileUtil.cpp FileWrite() calls CreateFileW() with member "FILE_SHARE_READ"
+    ; - https://docs.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew
+    ;   says other processes can delete or move the file only if "FILE_SHARE_DELETE" is used
+    ; - Therefore our FileMove attempts should error until SumatraPDF .smx write is finished
+    ; ---------------------------------------------
+
     Loop
     {
-      FileMove, % vFile , % vFile
+      FileMove, % vFile ".smx" , % vFile ".smx"
       if !ErrorLevel
         break
       sleep 20
@@ -748,14 +777,24 @@ Lbutton & Rbutton::  ; yellow, or longpress to cycle
     }
 
     ; Read updated .smx
-    If !GetVars(vFile, vSmx, vPage, vLen) ; ByRef
+    If !GetSmx(vSmx, vFile) ; ByRef vSmx
       Return
 
     ; Change color of the last (newest) highlights
     ; Note: SumatraPDF always updates the .smx by appending (not sorted by page)
     ; therefore we only need to operate on new sections at the end of the file
-    vOldSmx := SubStr(vSmx, 1      , vSmxLen)
-    vNewSmx := SubStr(vSmx, vSmxLen)
+    if vSmxLen
+    {
+      vOldSmx := SubStr(vSmx, 1      , vSmxLen)
+      vNewSmx := SubStr(vSmx, vSmxLen)
+    }
+    else
+    {
+      ; first annotation to new smx file
+      vOldSmx := ""
+      vNewSmx := vSmx
+    }
+
     ; Replace color data in each new [highlight] section
     vNewSmx := StrReplace(vNewSmx, "color = #" vYellow, "color = #" vHighlightColor)
     
@@ -812,26 +851,68 @@ ToggleHighlightsOnOff(vFile, vOnOff := "") {
 }
 
 
-; function: passthrough hotkey if focused control is not SUMATRA_PDF_CANVAS1
-PassthroughKeyIfNotCanvasFocus(vThisLabel) {
-  ; note: ControlGetFocus does not get "SUMATRA_PDF_CANVAS1" even when canvas is active
-  ; maybe SumatraPDF does not keyboard focus to canvas, which is what ControlGetFocus tracks
-  ; https://www.autohotkey.com/docs/commands/ControlGetFocus.htm
-  ; workaround (incomplete?): instead check if other SumatraPDF UI controls have focus
-  ControlGetFocus, vActiveControl, A
-  If (vActiveControl = "Edit1") or (vActiveControl = "Edit2")
-  {
-    ; Send passthrough unless mouse hotkey
-    If !InStr(vThisLabel, "Lbutton")
-      Send % vThisLabel
+
+; function: check if file is type that need workaround for position bug/issue
+; note: vEpubExtensions format: "|epub| ... |xyz|"
+RequiresEpubFix(vFile, vEpubExtensions) {
+  SplitPath, vFile, , , vExtension
+  If InStr(vEpubExtensions, "|" vExtension "|")
     Return 1
-  }
 }
 
 
-; function: quickly show new jump filter color in colored rectangle
-; size       = square width/height
-; mpos       = show square in window centre (default) or near mouse pointer
+
+; function: pass hotkey string to SumatraPDF if focused control is not SUMATRA_PDF_CANVAS1 (document canvas)
+; note: does not pass mouse hotkeys or hotkeys with modifiers
+PassthroughIfNotCanvasFocus(vHotkey) {
+  If CanvasFocused()
+    Return
+  Passthrough(vHotkey)
+  Return 1
+}
+
+; function: check if focused control is SUMATRA_PDF_CANVAS1 (document canvas)
+CanvasFocused() {
+  ; note: ControlGetFocus does not get "SUMATRA_PDF_CANVAS1" even when canvas is active
+  ; possible explanation: SumatraPDF gives no keyboard focus to canvas?
+  ; https://www.autohotkey.com/docs/commands/ControlGetFocus.htm
+  ; workaround (incomplete?): check if other SumatraPDF UI controls have focus
+  ;   note: only two other controls given #IfWinActive ahk_class SUMATRA_PDF_FRAME
+  ;   Edit1 = go to editbox, Edit2 = find editbox
+  ControlGetFocus, vActiveControl, A
+  If !(vActiveControl = "Edit1") and !(vActiveControl = "Edit2")
+    Return 1
+}
+
+; function: pass hotkey string to SumatraPDF
+; note: filters out mouse hotkeys or hotkeys with modifiers
+Passthrough(vHotkey)
+{
+  ; only pass single character keys (a, e, 1, ...)
+  If (StrLen(vHotkey) = 1)
+    Send % vHotkey
+}
+
+; function: pass hotkey string to SumatraPDF if unsupported document extension
+PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, vHotkey)
+{
+  if SupportedExtension(vFile, vSupportedExtensions)
+    Return
+  Passthrough(vHotkey)
+  Return 1
+}
+
+; function: check if file extension is supported by HighlightJump
+; note: vSupportedExtensions format: "|pdf|epub| ... |xyz|"
+SupportedExtension(vFile, vSupportedExtensions) {
+  SplitPath, vFile, , , vExtension
+  If InStr(vSupportedExtensions, "|" vExtension "|")
+    Return 1
+}
+
+
+
+; function: briefly flash new jump filter color in colored rectangle
 FlashColorSquare(vSquareSize, vJumpColor, vSquarePos := "window", vTimeout := 1)
 {
   vWinId := WinExist("A")
@@ -876,7 +957,7 @@ SaveSmx(vFile, vSmx) {
 }
 
 
-;function: create .smx with standard header data
+; function: create .smx with standard header data
 SmxCreateWithHeader(vFile)
 {
   ; -------------------------
@@ -975,21 +1056,29 @@ Send_WM_COPYDATA(WinTitle, dwData, lpData) {
 }
 
 
-; function: get filepath, .smx data, current pagenumber and length of active document
-; returns 1 if all ByRef values set, else 0
-; exception: if mode = "smx not required" then returns 1 also if smx is unset
-;            used by quick jump keys
-;GetVars(ByRef vFile, ByRef vSmx, ByRef vPage, ByRef vLen) {
-GetVars(ByRef vFile, ByRef vSmx, ByRef vPage, ByRef vLen, mode := "all") {
+; function: get filepath to current document in active SumatraPDF window
+GetFile(ByRef vFile){
+  if vLegacyMethods ; super-global variable
+    vFile := SumatraGetActiveDocumentFilePathFromTitle()
+  else
+    vFile := SumatraGetActiveDocumentFilepath()
+  if vFile
+    Return 1
+}
 
-  ; get active document filepath
-  vFile := SumatraGetActiveDocumentFilePath()
-  
-  ; get .smx file data
+
+; function: get .smx file data
+GetSmx(ByRef vSmx, vFile := "") {
+If vFile
   FileRead, vSmx, %vFile%.smx
+If vSmx
+  Return 1
+}
 
-  ; get current page number from SumatraPDF page number editbox
-  ; note: works even when the toolbar is not shown
+
+; function: get page number and document length from SumatraPDF go to control
+GetPageLen(ByRef vPage, ByRef vLen) {
+  ; note: reading the control works even if toolbar is hidden
   ControlGetText, vPage, Edit1, A
   ; Get adjacent text
   ControlGetText, vRightText, Static3, A
@@ -1008,18 +1097,19 @@ GetVars(ByRef vFile, ByRef vSmx, ByRef vPage, ByRef vLen, mode := "all") {
   
   ; if case1: get real (not virtual) pagenumber from adjacent text
   RegExMatch(vRightText, "\((\d+)", vRealPageCheck)
-  if vRealPageCheck
+  If vRealPageCheck
     vPage := vRealPageCheck1
 
   ; get document length: "/ 102" -> 102
   ; use pattern that handles both case1 and case2 text
-  vLen := RegExReplace(vRightText, "^.*/ (\d+)(?:\D|)", "$1")
-  
-  If (mode = "all") and (vFile and vSmx and vPage and vLen)
-    Return 1
-  If (mode = "smx not required") and (vFile and vPage and vLen)
+  RegExMatch(vRightText, "^.*/ (\d+)(?:\D|)", vLenMatch)
+  vLen := vLenMatch1
+
+  If (vPage and vLen)
     Return 1
 }
+
+
 
 
 ; function: get cursor canvas x y pos in pt units from active SumatraPDF window
@@ -1037,6 +1127,8 @@ SumatraGetCanvasPos(ByRef x, ByRef y) {
 }
 
 
+
+
 ; function: get filepath for active document in active SumatraPDF window
 ; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
 ; - make SumatraPDF return data via WM_COPYDATA
@@ -1045,9 +1137,6 @@ SumatraGetCanvasPos(ByRef x, ByRef y) {
 ; - Note: Works if SumatraPDF is compiled 32bit and AutoHotkey 32bit/64bit unicode
 ;         Fails if SumatraPDF is compiled 64bit
 SumatraGetActiveDocumentFilepath() {
-
-  if vLegacyMethods ; super-global variable
-    Return SumatraGetActiveDocumentFilePathFromTitle()
   
   if !WinActive("ahk_class SUMATRA_PDF_FRAME")
     Return
@@ -1066,6 +1155,7 @@ SumatraGetActiveDocumentFilepath() {
   
   ; after Receive_WM_COPYDATA has reacted, stop listener
   OnMessage(0x4a, "Receive_WM_COPYDATA", 0)
+  
   ; check for \ to ensure filepath an not only filename
   If InStr(vFilepathReturn, "\")
     return vFilepathReturn
@@ -1126,7 +1216,6 @@ SetSystemCursor(Cursor := "")
 
 
 
-
 ; -------------------------------------------------------------
 ; LegacyMethods start
 ; -------------------------------------------------------------
@@ -1136,20 +1225,38 @@ SetSystemCursor(Cursor := "")
 ; Returns 1 if prepared
 PrepareForCanvasPosCheck()
 {
-  ; - To read mouse position in SumatraPDF document pt position in x y grid
-  ;   we first send "m" to show a popup position helper notification in top left document corner.
-  ; - Press "m" again to cycle notification units: pt -> mm -> in
-  ; - .smx files use unit pt for highlight rect corner data.
-  ; - Once the popup exists we can hide it and still read it.
-  ; - Every new "m" press shows the popup again.
-  ; - SumatraPDF shortcut "Esc" closes the popup even when hidden.
+
+  ; ------------------------------------------
+  ; notes on SumatraPDF position helper notification
+  ; ------------------------------------------
+  ; Shortcut "m" shows position helper notification in top left document corner.
+  ; Reports X Y document canvas position that the mouse is over.
+  ;   Example: top right document corner reports 0 0 in fixed page mode.
+  ; Press "m" again to cycle notification units: pt -> mm -> in
+  ; .smx files use unit pt for highlight rect corner data.
+  ; Once notification exists we can hide it and still read with ControlGetText.
+  ; "Esc" closes the notification even when hidden.
+
+  ; Notification text format:
+  ; "Cursor position: 51,0 x 273,5 pt"
+  ; "Cursor position: 18,0 x 96,4 mm"
+  ; "Cursor position: 0,71 x 3,8 in"
+  ;
+  ; Important: do not use the ":" in regex patterns
+  ; Because it is *not* present in all SumatraPDF language translations
+  ; Example: Dutch language: "Cursor positie 0,0 x 4,77 in"
+  ; 
+  ; Note: The pt/mm/in unit string is not translated so can be used as pattern.
+  ; Check via SubStr since InStr could give false positive in some language.
+  ; ------------------------------------------
 
   ; check if popup exists (hidden or visible)
   ControlGetText, vPos, SUMATRA_PDF_NOTIFICATION_WINDOW1, A
 
   ; if not exist then send "m" to create popup
   ; note: SumatraPDF changes the mouse cursor to a cross while the popup exists
-  If !InStr(vPos, "pt")
+  ; note: use SubStr since InStr could give false positive in some language.
+  If !(SubStr(vPos, -1) = "pt")
   {
     Loop, 3
     {
@@ -1159,26 +1266,26 @@ PrepareForCanvasPosCheck()
       Control, Hide, , SUMATRA_PDF_NOTIFICATION_WINDOW1, A
       ; read popup
       ControlGetText, vPos, SUMATRA_PDF_NOTIFICATION_WINDOW1, A
-      If InStr(vPos, "pt")
+      If (SubStr(vPos, -1) = "pt")
         Break
       Sleep 30
     }
   }
 
-  If InStr(vPos, "pt")
+  If (SubStr(vPos, -1) = "pt")
     Return 1
 }
 
 
 ; LegacyMethods
-; function: Read SumatraPDF notification to get mouse position in canvas in pt units
+; function: Read SumatraPDF notification to get mouse position in canvas pt units
 SumatraGetCanvasPosFromNotification(ByRef x, Byref y) {
   
-  ; Read UI notification to get mouse position in SumatraPDF canvas in pt units (one decimal)
+  ; get mouse position in SumatraPDF canvas in pt units (one decimal)
   ControlGetText, vPos, SUMATRA_PDF_NOTIFICATION_WINDOW1, A
-  
-  ; get X Y pos with decimals and round later
-  RegExMatch(vPos, ": (\d+,\d+) x (\d+,\d+)", vPos)
+  ; extract X Y pos with decimals and round later
+  ; note: pattern cannot use on ":" because not in all language translations
+  RegExMatch(vPos, " (\d+,\d+) x (\d+,\d+) pt$", vPos)
   ; convert decimal commas to dots
   x := StrReplace(Vpos1, ",", ".")
   y := StrReplace(Vpos2, ",", ".")
@@ -1191,27 +1298,45 @@ SumatraGetCanvasPosFromNotification(ByRef x, Byref y) {
 SumatraGetActiveDocumentFilePathFromTitle()
 {
   WinGetTitle, vTitle, A
-  ;get filepath
-  vFile := RegExReplace(vTitle, "i)(^.+:\\.+(?:pdf|djvu|epub|mobi)) - .*$", "$1")
-  ;if no match above then RegExReplace returns unmodified vTitle
-  ;therefore check again for :\ to ensure filepath and not only filename
+
+  ; ---------------------------------------------
+  ; SumatraPDF window title format with advanced setting "FullPathInTitle = true"
+  ; ---------------------------------------------
+  ; format1 "<filepath> - [<metadata document title>] - SumatraPDF"
+  ; format2 "<filepath> - SumatraPDF"
+  ; --------------------------------------------
+  ; note: in format1 both filepath and metadata can use characters "-"  "["  and  " "
+  ; That enables edge cases like "C:\a.pdf - [.pdf - [x] - SumatraPDF"
+  ; which has two possible solutions
+  ; 1 "C:\a.pdf"          with metadata ".pdf - [x"
+  ; 2 "C:\a.pdf - [.pdf"  with metadata "x"
+  ; and more complex cases with even more solutions.
+  ; In format2 there is always one solution.
+  
+  ; Detect format1 or format2
+  If (SubStr(vTitle, -13) = "] - SumatraPDF")
+  {
+    ; format1: try each instance of " - [" until a file exist
+    ; probably good enough in most circumstances
+    Loop, 20
+    {
+      vFilepathLen := InStr(vTitle, " - [", , , A_Index) - 1
+      vFile := SubStr(vTitle, 1, vFilepathLen)
+      if FileExist(vFile)
+        break
+    }
+  }
+  Else
+  {
+    ; format2: find last instance of " - SumatraPDF"
+    vFilepathLen := InStr(vTitle, " - SumatraPDF") - 1
+    vFile := SubStr(vTitle, 1, vFilepathLen)
+  }
+
+  ; Check for :\ and existance to ensure string is filepath and not only filename
   If InStr(vFile, ":\") and FileExist(vFile)
     Return vFile
 }
-; ---------------------------------------------
-; SumatraPDF window title format with advanced setting "FullPathInTitle = true"
-; ---------------------------------------------
-; "<filepath> - SumatraPDF" or
-; "<filepath> - [<metadata document title>] - SumatraPDF"
-; examples:
-; "C:\test folder\book name.pdf [the great book] - SumatraPDF"
-; Note: The RegEx is greedy so will correctly return also this filepath
-; C:\test\a.mobi - something.epub
-; Problem: The RegEx returns an incorrect path in this case:
-; C:\test\a.mobi - something.epub - [.pdf - test] - SumatraPDF
-; Todo: find a better RegEx pattern
-; ---------------------------------------------
-
 
 ; -------------------------------------------------------------
 ; LegacyMethods end
