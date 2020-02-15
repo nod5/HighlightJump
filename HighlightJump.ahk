@@ -1242,9 +1242,9 @@ PrepareForCanvasPosCheck()
   ; "Cursor position: 18,0 x 96,4 mm"
   ; "Cursor position: 0,71 x 3,8 in"
   ;
-  ; Important: do not use the ":" in regex patterns
-  ; Because it is *not* present in all SumatraPDF language translations
-  ; Example: Dutch language: "Cursor positie 0,0 x 4,77 in"
+  ; Note: do not use the "," in regex because it is char "." on some PCs
+  ; Note: do not use the ":" in regex because not present in all translations
+  ; Example: Dutch language setting: "Cursor positie 0,0 x 4,77 in"
   ; 
   ; Note: The pt/mm/in unit string is not translated so can be used as pattern.
   ; Check via SubStr since InStr could give false positive in some language.
@@ -1284,8 +1284,9 @@ SumatraGetCanvasPosFromNotification(ByRef x, Byref y) {
   ; get mouse position in SumatraPDF canvas in pt units (one decimal)
   ControlGetText, vPos, SUMATRA_PDF_NOTIFICATION_WINDOW1, A
   ; extract X Y pos with decimals and round later
-  ; note: pattern cannot use on ":" because not in all language translations
-  RegExMatch(vPos, " (\d+,\d+) x (\d+,\d+) pt$", vPos)
+  ; note: do not use the "," in regex because it is char "." on some PCs
+  ; note: do not use the ":" in regex because not present in all translations
+  RegExMatch(vPos, " (\d+.\d+) x (\d+.\d+) pt$", vPos)
   ; convert decimal commas to dots
   x := StrReplace(Vpos1, ",", ".")
   y := StrReplace(Vpos2, ",", ".")
