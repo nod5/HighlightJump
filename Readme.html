@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang xml:lang>
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>HighlightJump</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    span.underline{text-decoration: underline;}
+    div.column{display: inline-block; vertical-align: top; width: 50%;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+  </style>
+  <style type="text/css">body {
+font: 400 16px/1.5 "Helvetica Neue", Helvetica, Arial, sans-serif;
+color: #111;
+background-color: #fdfdfd;
+-webkit-text-size-adjust: 100%;
+-webkit-font-feature-settings: "kern" 1;
+-moz-font-feature-settings: "kern" 1;
+-o-font-feature-settings: "kern" 1;
+font-feature-settings: "kern" 1;
+font-kerning: normal;
+padding: 30px;
+}
+@media only screen and (max-width: 600px) {
+body {
+padding: 5px;
+}
+body > #content {
+padding: 0px 20px 20px 20px !important;
+}
+}
+body > #content {
+margin: 0px;
+max-width: 900px;
+border: 1px solid #e1e4e8;
+padding: 10px 40px;
+padding-bottom: 20px;
+border-radius: 2px;
+margin-left: auto;
+margin-right: auto;
+}
+hr {
+color: #bbb;
+background-color: #bbb;
+height: 1px;
+flex: 0 1 auto;
+margin: 1em 0;
+padding: 0;
+border: none;
+}
+
+a {
+color: #0366d6;
+text-decoration: none; }
+a:visited {
+color: #0366d6; }
+a:hover {
+color: #0366d6;
+text-decoration: underline; }
+pre {
+background-color: #f6f8fa;
+border-radius: 3px;
+font-size: 85%;
+line-height: 1.45;
+overflow: auto;
+padding: 16px;
+}
+
+code {
+background-color: rgba(27,31,35,.05);
+border-radius: 3px;
+font-size: 85%;
+margin: 0;
+word-wrap: break-word;
+padding: .2em .4em;
+font-family: SFMono-Regular,Consolas,Liberation Mono,Menlo,Courier,monospace;
+}
+pre > code {
+background-color: transparent;
+border: 0;
+display: inline;
+line-height: inherit;
+margin: 0;
+overflow: visible;
+padding: 0;
+word-wrap: normal;
+font-size: 100%;
+}
+
+blockquote {
+margin-left: 30px;
+margin-top: 0px;
+margin-bottom: 16px;
+border-left-width: 3px;
+padding: 0 1em;
+color: #828282;
+border-left: 4px solid #e8e8e8;
+padding-left: 15px;
+font-size: 18px;
+letter-spacing: -1px;
+font-style: italic;
+}
+blockquote * {
+font-style: normal !important;
+letter-spacing: 0;
+color: #6a737d !important;
+}
+
+table {
+border-spacing: 2px;
+display: block;
+font-size: 14px;
+overflow: auto;
+width: 100%;
+margin-bottom: 16px;
+border-spacing: 0;
+border-collapse: collapse;
+}
+td {
+padding: 6px 13px;
+border: 1px solid #dfe2e5;
+}
+th {
+font-weight: 600;
+padding: 6px 13px;
+border: 1px solid #dfe2e5;
+}
+tr {
+background-color: #fff;
+border-top: 1px solid #c6cbd1;
+}
+table tr:nth-child(2n) {
+background-color: #f6f8fa;
+}
+
+img {
+max-width: 100%;
+}
+p {
+line-height: 24px;
+font-weight: 400;
+font-size: 16px;
+color: #24292e; }
+ul {
+margin-top: 0; }
+li {
+color: #24292e;
+font-size: 16px;
+font-weight: 400;
+line-height: 1.5; }
+li + li {
+margin-top: 0.25em; }
+* {
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+color: #24292e; }
+a:visited {
+color: #0366d6; }
+h1, h2, h3 {
+border-bottom: 1px solid #eaecef;
+color: #111;
+ }</style>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<h1 id="highlightjump">HighlightJump</h1>
+<p>AutoHotkey app to add, remove and jump to color highlights in SumatraPDF</p>
+<p>Version 2020-02-18 - Free software GPLv3 - by Nod5</p>
+<p><a href="https://github.com/nod5/HighlightJump/">https://github.com/nod5/HighlightJump/</a></p>
+<p><a href="https://www.youtube.com/watch?v=AcVI616W5D8">Feature overview (YouTube)</a></p>
+<h1 id="setup">Setup</h1>
+<ol type="1">
+<li><p>Get newest <a href="https://www.sumatrapdfreader.org/prerelease.html">SumatraPDF Prerelease</a> version</p></li>
+<li><p>In SumatraPDF &gt; Settings &gt; Advanced Options:<br />
+<code>SaveIntoDocument = false</code><br />
+<code>FullPathInTitle = true</code></p></li>
+<li><p>Install <a href="https://www.autohotkey.com/">AutoHotkey</a> unicode</p></li>
+</ol>
+<h1 id="use">Use</h1>
+<p><a href="https://github.com/nod5/HighlightJump/archive/master.zip">Download repo</a>, unzip and run <code>HighlightJump.ahk</code><br />
+There is no UI. Use keyboard and mouse shortcuts.<br />
+Use tray icon to close or show help.<br />
+Tip: Copy a <code>HighlightJump.ahk</code> shortcut to Startup folder in Windows.</p>
+<h1 id="keyboard-shortcuts">Keyboard shortcuts</h1>
+<p><code>A</code> or <code>Y</code> : Highlight selection yellow<br />
+<code>A (hold)</code> : cycle highlight color: yellow &gt; red &gt; green &gt; cancel</p>
+<p><code>R</code> : Highlight selection red<br />
+<code>G</code> : Highlight selection green<br />
+<code>D</code> : Make a blue square dot at the mouse pointer (“D for dot”)</p>
+<p><code>E (hold)</code> : Remove all highlighting mouse moves over (“E for erase”)<br />
+<code>Ctrl + Delete</code> : Remove all highlighting on active page</p>
+<p><code>Win + A</code> : Hide/Show all highlighting</p>
+<p><code>Ctrl + PgUp/PgDn</code> : Jump to next/previous page with highlight<br />
+<code>Ctrl + Home/End</code> : Jump to first/last page with highlight</p>
+<p><code>Ctrl + Shift + Y/R/G/D</code> : select jump filter color<br />
+<code>Ctrl + Shift + A</code> : cycle jump filter colors<br />
+<code>Ctrl + Shift + PgUp/PgDn</code> : Jump to next/previous filter color page<br />
+<code>Ctrl + Shift + Home/End</code> : Jump to first/Last filter color page</p>
+<h1 id="quick-jump-shortcuts">Quick jump shortcuts</h1>
+<p><code>1/2/3/4 (hold)</code> : temporarily store current page number<br />
+<code>1/2/3/4 (tap)</code> : jump to stored page (tap again to undo jump)<br />
+<code>5</code> : show list of stored pages</p>
+<h1 id="mouse-shortcuts">Mouse shortcuts</h1>
+<p><code>Lbutton + Rbutton</code> : Highlight selected text yellow<br />
+<code>Lbutton + Rbutton (hold)</code> : Cycle highlight color: yellow &gt; red &gt; green &gt; cancel</p>
+<p><code>Rbutton + Mbutton</code> : Make a blue square dot at the mouse pointer</p>
+<p><code>Rbutton + Lbutton (hold)</code> : Remove all highlighting mouse moves over</p>
+<p><code>Rbutton (hold) + Scroll Up/Down</code> : Jump to next/previous page with highlight</p>
+<p><code>Ctrl + Lbutton (click drag)</code> : Draw rectangle, then <code>A/Y/R/G</code> to make highlight</p>
+<h1 id="license">License</h1>
+<p>Free Software GPLv3 by github.com/nod5<br />
+Icon CC-BY-3.0 by p.yusukekamiyamane.com</p>
+<h1 id="ini-file-options">.ini file options</h1>
+<p>Edit <code>HighlightJump.ahk.ini</code> to change these options.<br />
+- <code>RedGreenRG=0</code> to use <code>Y</code> for red and <code>U</code> for green instead of <code>R</code> <code>G</code>.<br />
+- <code>Experimental=1</code> to use experimental features (requires modified SumatraPDF C++ source)<br />
+- <code>QShortcut=1</code> to use <code>Q</code> to show quick jump menu.<br />
+- <code>SelectionLabel=1</code> to when creating a quick jump use selection as label in quick jump list.<br />
+- <code>CapsLockErase=1</code> to use <code>CapsLock (hold)</code> to remove all highlighting mouse moves over. Use if touchpad palm tracking blocks <code>E</code>.</p>
+<h1 id="faq">FAQ</h1>
+<p><strong>Q</strong> Which filetypes does HighlightJump support?<br />
+<strong>A</strong> <code>PDF DJVU DJV</code> and if SumatraPDF advanced settings section <code>ChmUI</code> is set to <code>UseFixedPageUI = true</code> then also <code>CHM EPUB MOBI TXT LOG</code>. The goal is to support all filetypes that SumatraPDF Prerelease can <a href="https://www.sumatrapdfreader.org/docs/Supported-document-formats.html">open</a> <em>and</em> annotate.</p>
+<p><strong>Q</strong> What Windows versions are supported?<br />
+<strong>A</strong> HighlightJump is only developed and tested in Windows 10 x64. It might work in other versions.</p>
+<p><strong>Q</strong> Why does HighlightJump only work in SumatraPDF Prerelease?<br />
+<strong>A</strong> Regular SumatraPDF does not (yet) have the feature to make highlights.</p>
+<p><strong>Q</strong> Which versions of SumatraPDF Prerelease can be used with HighlightJump?<br />
+<strong>A</strong> Short answer: try the newest version. Longer: new Prerelease versions can have changes that break HighlightJump. In that case you can try older prerelease versions, until next HighlightJump release fixes the incompatibility. Prerelease versions from before 2020-02-02 are definitely incompatible.</p>
+<p><strong>Q</strong> Will my highlights work a year from now?<br />
+<strong>A</strong> Probably. But new SumatraPDF versions might also break HighlightJump permanently or change the .smx annotation format. Therefore consider highlights you make not future-proof.</p>
+<p><strong>Q</strong> Why are edits to SumatraPDF advanced settings required?<br />
+<strong>A</strong> Saving annotations (highlighting) to an external plaintext file <code>filename.pdf.smx</code> is necessary for HighlightJump to read/edit them. Showing full file path in window title is currently necessary for HighlightJump to know the file path. There is an experimental workaround, see further down.</p>
+<p><strong>Q</strong> I do not like that <code>R</code> and <code>G</code> override <a href="https://www.sumatrapdfreader.org/manual.html">SumatraPDF shortcuts</a>.<br />
+<strong>A</strong> Easy recall (“R for red”) can be worth a small shortcut conflict. HighlightJump creates <code>Ctrl+R</code> as replacement <code>reload</code> shortcut and SumatraPDF already has <code>Ctrl+G</code> for <code>go to</code>. If you disagree then in <code>HighlightJump.ahk.ini</code> set <code>RedGreenRG=0</code>. That makes <code>Y</code> red and <code>U</code> green.</p>
+<p><strong>Q</strong> How do the quick jump keys work?<br />
+<strong>A</strong> Hold down one of <code>1 / 2 / 3 / 4</code> to store the current pagenumber. Later tap (short press) that key again to jump to the stored page. While on that page tap again to undo the jump. Press <code>5</code> to show a list of stored pages. Use it for temporary jumps. Clears when HighlightJump is closed. Independent from highlights. Similar to <a href="https://mupdf.com/docs/manual-mupdf-gl.html">MuPDF Viewer</a> numbered bookmarks.</p>
+<p><strong>Q</strong> Will pdf files with an UNC file path work?<br />
+<strong>A</strong> No, files like <code>\\server\share\path\file.pdf</code> do not yet work in HighlightJump.</p>
+<p><strong>Q</strong> What file encoding should be used?<br />
+<strong>A</strong> The correct encoding for the <code>HighlightJump.ahk</code> file is <code>UTF-8 BOM</code>. See AutoHotkey <a href="https://www.autohotkey.com/docs/FAQ.htm#nonascii">FAQ</a>. The download from GitHub has that encoding.</p>
+<p><strong>Q</strong> Why does HighlightJump exist?<br />
+<strong>A</strong> HighlightJump is “feature request ware”. I hope someone builds this into SumatraPDF.</p>
+<h1 id="known-issues">Known Issues</h1>
+<p>When SumatraPDF is in continous page mode and (parts of) multiple pages are visible then <code>D</code>, <code>E</code> and <code>Ctrl + Del</code> and quick jump shortcuts operate on the page shown in SumatraPDF toolbar. That is sometimes not the page the mouse is over! Keep an eye out for that, otherwise you may add/remove highlights on the wrong page. Issue <a href="https://github.com/nod5/HighlightJump/issues/5">#5</a>.</p>
+<h1 id="experimental-improved-methods">Experimental: improved methods</h1>
+<p>HighlightJump has experimental methods to get the active document file path and canvas position via SendMessage. Improvements compared to default methods: faster, more reliable, silent, and no <code>FullPathInTitle</code> setting required.</p>
+<p>To try the experimental features:<br />
+- Edit SumatraPDF C++ source via instructions in folder <code>SumatraPDF_modifications</code> and compile as <code>32-bit Debug</code> version.<br />
+- In <code>HighlightJump.ahk.ini</code> set <code>Experimental=1</code>.</p>
+<p>See also SumatraPDF repo issues <a href="https://github.com/sumatrapdfreader/sumatrapdf/issues/1411">1411</a> and <a href="https://github.com/sumatrapdfreader/sumatrapdf/issues/1412">1412</a></p>
+</body>
+</html>
