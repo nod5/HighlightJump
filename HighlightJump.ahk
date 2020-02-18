@@ -1,10 +1,12 @@
 ﻿; ---------------------------------------------------------------------
 ; HighlightJump
-; 2020-02-14
+; 2020-02-18
 ; ---------------------------------------------------------------------
 ; AutoHotkey app to add, remove and jump between highlights in SumatraPDF
 ; Free software GPLv3
 ; https://github.com/nod5/HighlightJump
+
+; See Readme.md for setup instructions
 ; ---------------------------------------------------------------------
 
 #NoEnv
@@ -31,11 +33,12 @@ aQuickJump := []
 
 Menu, Tray, Tip, HighlightJump
 Menu, Tray, Add  ; --------------
-Menu, Tray, Add, GitHub page, open_github_page
-Menu, Tray, Add, HighlightJump (ReadMe), info
-Menu, Tray, Add, reload, reload 
+Menu, Tray, Add, HighlightJump GitHub Page, open_github_page
+Menu, Tray, Add, HighlightJump Readme, open_readme
+Menu, Tray, Add, HighlightJump Shortcuts, open_info
+Menu, Tray, Add, Reload, reload 
 Menu, Tray, Add  ; --------------
-Menu, Tray, Default, HighlightJump (ReadMe)
+Menu, Tray, Default, HighlightJump Shortcuts
 
 ; if not compiled then try HighlightJump.ico as trayicon
 if !A_IsCompiled
@@ -52,14 +55,15 @@ if !A_IsCompiled
 vIniFile := A_ScriptFullPath ".ini"
 If !FileExist(vIniFile)
   ; create default ini file
-  FileAppend,[Settings]`nRedGreenRG=1`nExperimental=0, % vIniFile
+  FileAppend,[Settings]`nRedGreenRG=1`nExperimental=0`nQShortcut=0`nSelectionLabel=0`nCapsLockErase=0, % vIniFile
+
+Hotkey, IfWinActive, ahk_class SUMATRA_PDF_FRAME
 
 ; read ini and set color annotation hotkeys
 IniRead, vRedGreenRG, % vIniFile, Settings, RedGreenRG, %A_Space%
 if vRedGreenRG
 {
   ; new mnemonic keys
-  Hotkey, IfWinActive, ahk_class SUMATRA_PDF_FRAME
   Hotkey, r, highlight_red    , on
   Hotkey, g, highlight_green  , on
   Hotkey, y, highlight_yellow , on
@@ -74,14 +78,21 @@ if vRedGreenRG
 else
 {
   ; older keys
-  Hotkey, IfWinActive, ahk_class SUMATRA_PDF_FRAME
   Hotkey, y, highlight_red    , on
   Hotkey, u, highlight_green  , on
   Hotkey, ^+y, filter_red     , on
   Hotkey, ^+u, filter_green   , on
   Hotkey, ^+d, filter_blue    , on
 }
-Hotkey, IfWinActive
+
+; read ini and set Q shortcut alias for Quick Jump menu on/off
+; note: Q overrides Q for "quit" in SumatraPDF. But Ctrl+Q for "quit" works.
+IniRead, vQShortcut, % vIniFile, Settings, QShortcut, %A_Space%
+If vQShortcut
+  Hotkey, q, quick_jump_menu, on
+
+; read ini and set use selected text as Quick Jump label on/off
+IniRead, vSelectionLabel, % vIniFile, Settings, SelectionLabel, %A_Space%
 
 ; read ini and set experimental features on or off
 IniRead, vExperimental, % vIniFile, Settings, Experimental, %A_Space%
@@ -100,6 +111,14 @@ global vFilepathReturn := ""
 ; note: global above makes the vars super-global
 ; https://www.autohotkey.com/docs/Functions.htm#SuperGlobal
 
+; read ini and set CapsLock as alias hotkey for E (erase under mouse) on or off
+IniRead, vCapsLockErase, % vIniFile, Settings, CapsLockErase, %A_Space%
+if vCapsLockErase
+  Hotkey, CapsLock, erase_under_mouse, on
+
+Hotkey, IfWinActive, ahk_class SUMATRA_PDF_FRAME
+
+
 ; list of extensions that HighlightJump supports
 vSupportedExtensions := "|pdf|djvu|djv|chm|epub|mobi|txt|log|"
 ; note: used to check if document extension is unsupported
@@ -112,43 +131,20 @@ vEpubExtensions      := "|chm|epub|mobi|txt|log|"
 Return
 
 
-info:
-vReadMe =
-  (LTRim
-  ▄▄▄▄▄▄▄▄
+open_info:
+vShortcuts =
+  (LTrim
+  ▄▄▄▄▄▄▄      HighlightJump      ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
   
-  HighlightJump
+  version 2020-02-18    https://github.com/nod5/HighlightJump
 
-  ▀▀▀▀▀▀▀▀
-  
-  Add, remove and jump to color highlights in SumatraPDF
+  ▄▄▄▄▄▄▄  Keyboard Shortcuts  ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 
-  version 2020-02-14  -  free software GPLv3  -  by github.com/nod5
-
-  SETUP:
-  1. Get SumatraPDF Prerelease version
-     https://www.sumatrapdfreader.org/prerelease.html
-
-  2. In SumatraPDF 
-    Settings > Advanced Options > SaveIntoDocument = false
-    Settings > Advanced Options > FullPathInTitle = true
-
-  3. Install AutoHotkey unicode, https://www.autohotkey.com
-
-  USE:
-  Download GitHub repo, unzip and run HighlightJump.ahk
-  There is no UI. Use keyboard and mouse shortcuts.
-  Use tray icon to close or show help.
-  Tip: Copy a HighlightJump.ahk shortcut to Startup folder in Windows.
-
-  KEYBOARD SHORTCUTS:
-  A or Y = Highlight selection yellow (and save to filename.pdf.smx)
+  A or Y = Highlight selection Yellow
+  R / G = Highlight selection Red / Green
+  D = Make a Blue square dot at the mouse pointer ("D for dot")
   A (hold) = cycle highlight color yellow -> red -> green -> cancel
-
-  R = Highlight selection red
-  G = Highlight selection green
-  D = Make a blue square dot at the mouse pointer ("D for dot")
-
+  
   E (hold) = Remove all highlighting mouse moves over ("E for erase")
   Ctrl + Delete = Remove all highlighting on active page
   Win + A = Hide/Show all highlighting
@@ -161,11 +157,13 @@ vReadMe =
   Shift + Ctrl + PgUp/PgDn = Jump to next/prev filter color page
   Shift + Ctrl + Home/End = Jump to first/last filter color page
 
-  QUICK JUMP KEYS:
+  ▄▄▄▄▄▄▄  Quick Jump Keys  ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
   1 2 3 4 = (hold) store current page, (tap) jump to stored page
   5 = show stored page list
 
-  MOUSE SHORTCUTS:
+  ▄▄▄▄▄▄▄  Mouse Shortcuts  ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+
   Lbutton + Rbutton = Highlight selected text yellow
   Lbutton + Rbutton (hold) = Cycle highlight color
 
@@ -174,18 +172,17 @@ vReadMe =
   Rbutton + Scroll Up/Down = Jump to next/prev page with highlight
 
   Ctrl + Lbutton (click drag) = draw rectangle, then A/Y/R/G to highlight
-
-  NOTE:
-  HighlightJump is "feature request ware".
-  I hope someone builds this into SumatraPDF.
-
-  Icon CC-BY-3.0 p.yusukekamiyamane.com
   )
-  MsgBox, % vReadMe
+  MsgBox, % vShortcuts
 Return
 
 open_github_page:
   Run https://github.com/nod5/HighlightJump
+Return
+
+open_readme:
+  If FileExist(A_ScriptDir "\readme.html")
+    Run % A_ScriptDir "\readme.html"
 Return
 
 reload: 
@@ -228,25 +225,26 @@ Return
 ; tap       = jump to stored page
 ; tap again = jump back to previous page
 ; store with filepath as level1 key and retain until script closes
+
 1::
 2::
 3::
 4::
+  ; note: must use A_ThisLabel here because also called by menu
   If PassthroughIfNotCanvasFocus(A_ThisLabel)
     Return
   GetFile(vFile) ; ByRef
-  If PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, A_ThisHotkey)
+  If PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, A_ThisLabel)
     Return
   
-  vStorePage := 0
   ToolTip
-  
+  vStorePage := 0
   ; if key down then start timer to detect press duration
   if GetKeyState(A_ThisLabel, "P")
   {
     t1 := A_TickCount
     SetTimer, quick_jump_key_duration, 10
-    KeyWait, % A_ThisLabel
+    KeyWait, % A_ThisLabel, T0.4
     SetTimer, quick_jump_key_duration, off
   }
 
@@ -256,9 +254,32 @@ Return
   If vStorePage
   {
     ; case: key hold
+
+    vJumpLabel := ""
     ; get and store current page
+    If !vLegacyMethods
+    {
+      ; if only one page visible or only one nearly fully visible then use that
+      ; else let user click to select a page
+      vPage := SmartPageSelect("store quick jump")
+    }
+    if !vPage
+      return
+
+    If vSelectionLabel
+    {
+      ; use any selection as label for quick jump menu
+      ; todo: verify that selection is on vPage
+      SumatraCopySelection(vJumpLabel)  ; ByRef
+      ; max 30 characters, lowercase
+      vJumpLabel := SubStr(vJumpLabel, 1, 30)
+      vJumpLabel := Format("{:L}", vJumpLabel)
+    }
+    
+    ToolTip stored
     ; note: concat "" to treat as string, otherwise error if leading zeros
     aQuickJump["" vFile, "" A_ThisLabel] := "" vPage
+    aQuickJump["" vFile, "" A_ThisLabel "label"] := "" vJumpLabel
     sleep 800
   }
   Else
@@ -266,7 +287,7 @@ Return
     ; case: key tap
     ; if already at stored page and last hotkey was this hotkey
     ; then jump to previous page via SumatraPDF shortcut
-    If (aQuickJump["" vFile, "" A_ThisLabel] = vPage) and (A_ThisHotkey = A_PriorHotkey)
+    If (aQuickJump["" vFile, "" A_ThisLabel] = vPage) and (A_ThisLabel = A_PriorHotkey)
       Send !{Left}
     ; else jump to stored page
     Else If vNewPage := aQuickJump["" vFile, "" A_ThisLabel]
@@ -280,14 +301,15 @@ quick_jump_key_duration:
   vDuration := A_TickCount - t1
   if (vDuration < 400)
     Return
-  ToolTip stored
   vStorePage := 1
   SetTimer, quick_jump_key_duration, off
+  ;Send {%A_ThisHotkey% Up}
 Return
 
 
 ; menu overview of quick jump stored pages
 5::
+quick_jump_menu:
   If PassthroughIfNotCanvasFocus(A_ThisHotkey)
     Return
   GetFile(vFile) ; ByRef
@@ -303,7 +325,10 @@ Return
   Loop, 4
     If aQuickJump["" vFile, "" A_Index]
     {
-      Menu, QuickJumpMenu, Add, % A_Index ": page " aQuickJump["" vFile, "" A_Index], % A_Index
+      vJumpLabel := aQuickJump["" vFile, "" A_Index "label"]
+      vJumpLabel := vJumpLabel ? "  [" vJumpLabel "]" : ""
+      vMenuText  := A_Index ": page " aQuickJump["" vFile, "" A_Index] vJumpLabel
+      Menu, QuickJumpMenu, Add, % vMenuText, % A_Index
       vOneOrMoreStored := 1
     }
   if vOneOrMoreStored
@@ -343,8 +368,6 @@ tooltip_timeout:
 Return
 
 
-
-
 ; Ctrl + Delete: Remove all highlighting on active page
 ^Del::
   If !CanvasFocused()
@@ -355,18 +378,25 @@ Return
   If !vFile or !GetSmx(vSmx, vFile) or !GetPageLen(vPage, vLen) ; ByRef vSmx ; ByRef
     Return
 
+  If !vLegacyMethods
+    vPage := SmartPageSelect("erase highlights")
+
+  If !vPage
+    return
+
   ; remove each [highlight] that contains "page = <active page number>"
   ; note: RegExReplace defaults to replacing each match
+  vOldSmx := vSmx
   vSmx := RegExReplace(vSmx, "Us)\[highlight]\Rpage = " vPage "\R.*opacity.*(?:\R\R|\R)", "")
-  SaveSmx(vFile, vSmx)
+  if (vSmx != vOldSmx)
+    SaveSmx(vFile, vSmx)
 Return
-
-
 
 
 ; Remove all highlights that the mouse moves over while key/button is held
 Rbutton & Lbutton::
   Send {Lbutton up}
+erase_under_mouse:
 e::
   If PassthroughIfNotCanvasFocus(A_ThisHotkey)
     Return
@@ -375,7 +405,7 @@ e::
     Return
   If !vFile or !GetSmx(vSmx, vFile) or !GetPageLen(vPage, vLen) ; ByRef vSmx ; ByRef
     Return
-  
+
   Sleep 50
 
   If vLegacyMethods
@@ -395,14 +425,14 @@ e::
   vOldSmx := vSmx
   SetTimer, remove_highlight_under_mouse, 10
   
-  ; wait for key release
-  If (A_ThisLabel = "e")
-    KeyWait, e
-  else
+  ; wait for held hotkey release
+  If (A_ThisHotkey = "Rbutton & Lbutton")
   {
     KeyWait, Lbutton
     KeyWait, Rbutton
   }
+  Else
+    KeyWait, %A_ThisHotkey%
   
   SetTimer, remove_highlight_under_mouse, Off
   
@@ -418,17 +448,20 @@ e::
     SaveSmx(vFile, vSmx)
 Return
 
-
 remove_highlight_under_mouse:
 
   If vLegacyMethods
     ; Read UI notification to get mouse position in SumatraPDF canvas in pt units (one decimal)
     SumatraGetCanvasPosFromNotification(mx, my) ; ByRef
   Else
+  {
     ; SendMessage method to get mouse position in SumatraPDF canvas in pt units (no decimals)
     SumatraGetCanvasPos(mx, my) ; ByRef
+    ; SendMessage method to get page num at point under mouse in SumatraPDF canvas
+    SumatraGetPageAtPoint(vPage) ; Byref
+  }
 
-  if !mx or !my
+  if !mx or !my or !vPage
     Return
 
   ; SumatraPDF .epub pt position bug/issue:
@@ -645,10 +678,14 @@ d::
     Send {Esc}
   }
   Else
+  {
     ; SendMessage method to get mouse position in SumatraPDF canvas in pt units (no decimal)
     SumatraGetCanvasPos(vPosX, vPosY) ; ByRef
+    ; SendMessage method to get page num at point under mouse in SumatraPDF canvas
+    SumatraGetPageAtPoint(vPage) ; Byref
+  }
 
-  if !vPosX or !vPosY
+  if !vPosX or !vPosY or !vPage
     Return
 
   ; workaround for SumatraPDF .epub pt position bug/issue (see earlier code comments)
@@ -695,7 +732,7 @@ Lbutton & Rbutton::  ; yellow, or longpress to cycle
   If PassthroughIfNotCanvasFocus(A_ThisHotkey)
     Return
   GetFile(vFile) ; ByRef
-  If PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, vHotkey)
+  If PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, A_ThisHotkey)
     Return
   If !vFile
     Return
@@ -1115,14 +1152,138 @@ GetPageLen(ByRef vPage, ByRef vLen) {
 ; function: get cursor canvas x y pos in pt units from active SumatraPDF window
 ; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
 ; IDM_REPLY_PT_POS                522
-; note: SumatraPDF returns a number 1XXXXYYYY where XXXX/YYYY is zero-padded X/Y position (no decimals)
+; note: SumatraPDF returns up to 10 digits (, 32-bit signed integer, range up to 2147483648)
+; with postion data packed in format XXXXXYYYYY
+; X < 21474. Y <= 99999. Y is zero padded.
 SumatraGetCanvasPos(ByRef x, ByRef y) {
-  if WinActive("ahk_class SUMATRA_PDF_FRAME")
+  if !WinActive("ahk_class SUMATRA_PDF_FRAME")
+    Return
+  SendMessage, 0x111, 522, 0,, A
+  vReturn := ErrorLevel
+  if vReturn
   {
-    SendMessage, 0x111, 522, 0,, A
-    vReturn := ErrorLevel
-    x := SubStr(vReturn, 2, 4)
-    y := SubStr(vReturn, 6, 4)
+    ;get X Y (add 0 to remove zero-padding)
+    y := 0 + SubStr(vReturn, -4)    ;last 5 digits
+    x := 0 + SubStr(vReturn, 1, -5) ;all except last 5 digits
+  }
+}
+
+
+
+
+; function: get pagenumber under mouse cursor from active SumatraPDF window
+; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
+; IDM_REPLY_PAGE_NUM              523
+; note: SumatraPDF returns 0 if cursor not over any page
+SumatraGetPageAtPoint(ByRef vPage) {
+  if !WinActive("ahk_class SUMATRA_PDF_FRAME")
+    Return
+
+  SendMessage, 0x111, 523, 0,, A
+  vPage := ErrorLevel = "FAIL" ? 0 : ErrorLevel
+}
+
+
+
+
+; function: show tooltip asking user to click page and return its page number
+; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp (in called functions)
+ClickPageGetPageNumber(vToolTipText) {
+  ; show tooltip and wait for Lbutton, cancel via Esc or timeout
+  ToolTip, % vToolTipText
+  t := A_TickCount
+  ; loop multiple keywait with short timeouts
+  ; todo: better method? cleanup?
+  Loop
+  {
+    KeyWait, Lbutton, D T0.02
+    If !ErrorLevel
+      break
+    KeyWait, Esc, D T0.02
+    If !ErrorLevel or (A_TickCount > t + 3000) or !WinActive("ahk_class SUMATRA_PDF_FRAME")
+    {
+      ToolTip
+      return
+    }
+  }
+  ToolTip
+  SumatraGetPageAtPoint(vPage) ; ByRef
+  Return vPage
+}
+
+
+
+
+; function: get the only (near fully) visible page or else let user click to select page
+; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp (in called functions)
+; vToolTipText = string to fill blank in tooltip "Click a page to _____ (Esc = cancel)"
+SmartPageSelect(vToolTipText)
+{
+  ; if only one page is visible or only one is near fully visible
+  ; then return that page number
+  ; else ask user to click page to return its page number
+  SumatraGetCountPagesVisible(vVisiblePagesCount, vNearFullyVisibleCount, vLastNearFullyVisible)
+  ; case1: only one page visible
+  ; case2: many visible but only one near fully visible (>= 80%)
+  If (vVisiblePagesCount = 1) or (vNearFullyVisibleCount = 1)
+  {
+    If vLastNearFullyVisible
+      vPage := vLastNearFullyVisible
+  }
+  ; case3: many near fully visible *or* function returned 0: ask user to click to select page
+  Else
+  {
+    ; show tooltip and wait for Lbutton, cancel via Esc or timeout
+    vToolTipText := "Click a page to " vToolTipText "`n(Esc = cancel)"
+    vPage := ClickPageGetPageNumber(vToolTipText)
+  }
+  Return vPage
+}
+
+
+
+
+; function: get pagenumber under mouse cursor from active SumatraPDF window
+; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
+; IDM_COPY_SELECTION              420
+SumatraCopySelection(ByRef vClip) {
+  if !WinActive("ahk_class SUMATRA_PDF_FRAME")
+    Return
+  vClipBackup := clipboardall
+  Clipboard := ""
+  ; copy selection
+  SendMessage, 0x111, 420, 0,, A
+  ; hide SumatraPDF notification "Select content with Ctrl+left mouse button" shown if no selection
+  Control, Hide, , SUMATRA_PDF_NOTIFICATION_WINDOW1, A
+  vClip := Clipboard
+  Clipboard := vClipBackup
+  vClipBackup := ""
+}
+
+
+
+
+; function: get number of pages visible in active SumatraPDF window
+; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
+; IDM_REPLY_PAGES_VISIBLE         524
+; returned data is packed in format LLLLLNNVV where
+; V = number of visible pages               >  0%  visible
+; N = number of near fully visible pages    >= 80% visible
+; L = pagenumber for last near fully visible page
+SumatraGetCountPagesVisible(ByRef vVisiblePagesCount, ByRef vNearFullyVisibleCount, ByRef vLastNearFullyVisible) {
+  if !WinActive("ahk_class SUMATRA_PDF_FRAME")
+    Return
+  SendMessage, 0x111, 524, 0,, A
+  vReturn := ErrorLevel
+  vVisiblePagesCount := vNearFullyVisibleCount := vLastNearFullyVisible := 0
+  if (vReturn != "FAIL")
+  {
+    ; note: add 0 to remove zero-padding
+    vVisiblePagesCount       := 0 + SubStr(vReturn, -1)     ; VV
+    if (StrLen(vReturn) > 2)
+      vNearFullyVisibleCount  := 0 + SubStr(vReturn, -3, 2) ; FF
+    if (StrLen(vReturn) > 4)
+      vLastNearFullyVisible   := 0 + SubStr(vReturn, 1, -4) ; LLLLL
   }
 }
 
@@ -1133,7 +1294,6 @@ SumatraGetCanvasPos(ByRef x, ByRef y) {
 ; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
 ; - make SumatraPDF return data via WM_COPYDATA
 ; - IDM_COPY_FILE_PATH          520
-; see: 20200115170914 todo gist1 gist2 for sumatrapdf issue
 ; - Note: Works if SumatraPDF is compiled 32bit and AutoHotkey 32bit/64bit unicode
 ;         Fails if SumatraPDF is compiled 64bit
 SumatraGetActiveDocumentFilepath() {
@@ -1286,10 +1446,20 @@ SumatraGetCanvasPosFromNotification(ByRef x, Byref y) {
   ; extract X Y pos with decimals and round later
   ; note: do not use the "," in regex because it is char "." on some PCs
   ; note: do not use the ":" in regex because not present in all translations
-  RegExMatch(vPos, " (\d+.\d+) x (\d+.\d+) pt$", vPos)
-  ; convert decimal commas to dots
-  x := StrReplace(Vpos1, ",", ".")
-  y := StrReplace(Vpos2, ",", ".")
+  ; test after discussion at https://github.com/nod5/HighlightJump/issues/6
+  ; mockup hybrid strings to show possible combinations of digits and separators (space comma dot)
+  ; ": 4.401 000,3 x 341,000.3 pt"
+  ; "a 4.401 000,3 x 341,000.3 pt"
+  ; regex sandbox: https://regex101.com/r/QAU3Kt/1
+  ; first step regex pattern
+  vPattern := "\D ([\d \.,]+)[\.,](\d+) x ([\d \.,]+)[\.,](\d+) pt$"
+  RegExMatch(vPos, vPattern, vPos)
+  ; remove separators to get integers
+  vPos1 := RegExReplace(vPos1, "[ \.,]", "")
+  vPos3 := RegExReplace(vPos3, "[ \.,]", "")
+  ; concatenate (integer)(dot-separator)(fraction)
+  x := vPos1 "." vPos2
+  y := vPos3 "." vPos4
 }
 
 
