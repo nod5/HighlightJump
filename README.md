@@ -2,7 +2,7 @@
 
 AutoHotkey app to add, remove and jump to color highlights in SumatraPDF  
 
-Version 2020-02-14  -  Free software GPLv3  -  by Nod5  
+Version 2020-02-18  -  Free software GPLv3  -  by Nod5  
   
 [![HighlightJump Feature Overview](https://github.com/nod5/HighlightJump/blob/master/images/HighlightJump_youtube_screenshot.png?raw=true)](https://www.youtube.com/watch?v=AcVI616W5D8)
 
@@ -63,6 +63,15 @@ Tip: Copy a `HighlightJump.ahk` shortcut to Startup folder in Windows.
 Free Software GPLv3 by github.com/nod5  
 Icon CC-BY-3.0 by p.yusukekamiyamane.com  
 
+# .ini file options
+
+Edit `HighlightJump.ahk.ini` to change these options.  
+- `RedGreenRG=0` to use `Y` for red and `U` for green instead of `R` `G`.  
+- `Experimental=1` to use experimental features (requires modified SumatraPDF C++ source)  
+- `QShortcut=1` to use `Q` to show quick jump menu.  
+- `SelectionLabel=1` to when creating a quick jump use selection as label in quick jump list.  
+- `CapsLockErase=1` to use `CapsLock (hold)` to remove all highlighting mouse moves over. Use if touchpad palm tracking blocks `E`.  
+
 # FAQ
 
 **Q** Which filetypes does HighlightJump support?  
@@ -99,7 +108,7 @@ Icon CC-BY-3.0 by p.yusukekamiyamane.com
 **A** HighlightJump is "feature request ware". I hope someone builds this into SumatraPDF.  
 
 # Known Issues
-When SumatraPDF is in continous page mode and (parts of) multiple pages are visible then  `D`, `E` and `Ctrl + Del` shortcuts operate on the page shown in SumatraPDF toolbar. That is sometimes not the page the mouse is over! Keep an eye out for that, otherwise you may add/remove highlights on the wrong page. Issue [#5](https://github.com/nod5/HighlightJump/issues/5).  
+When SumatraPDF is in continous page mode and (parts of) multiple pages are visible then  `D`, `E` and `Ctrl + Del` and quick jump shortcuts operate on the page shown in SumatraPDF toolbar. That is sometimes not the page the mouse is over! Keep an eye out for that, otherwise you may add/remove highlights on the wrong page. Issue [#5](https://github.com/nod5/HighlightJump/issues/5).  
 
 # Experimental: improved methods
 HighlightJump has experimental methods to get the active document file path and canvas position via SendMessage. Improvements compared to default methods: faster, more reliable, silent, and no `FullPathInTitle` setting required.  
