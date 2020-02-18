@@ -22,8 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [2020-02-14] - 2020-02-14
 ### Added
-- Support for CHM MOBI TXT LOG filetypes (requires SumatraPDF advanced setting)
-- Support for DJV filetype
+- Support for `CHM MOBI TXT LOG` filetypes (requires SumatraPDF advanced setting)
+- Support for `DJV` filetype
 - Readme entry on known issue in continous page mode
 - Readme clarification on compatibility and possible breaking changes
 
