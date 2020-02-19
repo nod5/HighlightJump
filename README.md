@@ -65,7 +65,7 @@ Icon CC-BY-3.0 by p.yusukekamiyamane.com
 
 # .ini file options
 
-Edit `HighlightJump.ahk.ini` to change these options.  
+Edit `HighlightJump.ahk.ini` to change these options and then reload HighlightJump.  
 - `RedGreenRG=0` to use `Y` for red and `U` for green instead of `R` `G`.  
 - `Experimental=1` to use experimental features (requires modified SumatraPDF C++ source)  
 - `QShortcut=1` to use `Q` to show quick jump menu.  
