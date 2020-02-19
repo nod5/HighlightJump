@@ -511,9 +511,13 @@ return
 
 
 ; jump to first/last page with highlight
+^NumpadHome::
+^NumpadEnd::
 ^Home::
 ^End::
 ; jump to first/last page with (color filter) highlight
++^NumpadHome::
++^NumpadEnd::
 +^Home::
 +^End::
   If !CanvasFocused()
@@ -603,9 +607,13 @@ Return
 ; jump to next/prev page with highlight
 Rbutton & WheelDown::
 Rbutton & WheelUp::
+^NumpadPgDn::
+^NumpadPgUp::
 ^PgDn::
 ^PgUp::
 ; jump to next/prev page with (color filter) highlight
++^NumpadPgDn::
++^NumpadPgUp::
 +^PgDn::
 +^PgUp::
   If !CanvasFocused()
