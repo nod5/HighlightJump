@@ -1,4 +1,4 @@
-# Change Log  
+# Changelog  
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 ### Added
 - SumatraPDF_modifications: get pagenumber under mouse, count visible pages
+
+## [2020-02-20] - 2020-02-20
+### Added
+- Jump shortcuts (`Ctrl + PgUp` ...) also work on Numpads (`Ctrl + Numpad PgDn` ...)
+
+### Changed
+- Clarified Readme about .ini file options
+- New icon (H on yellow background) with multiple sizes
 
 ## [2020-02-18] - 2020-02-18
 ### Added
