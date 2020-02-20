@@ -2,7 +2,7 @@
 
 AutoHotkey app to add, remove and jump to color highlights in SumatraPDF  
 
-Version 2020-02-18  -  Free software GPLv3  -  by Nod5  
+Version 2020-02-20  -  Free software GPLv3  -  by Nod5  
   
 [![HighlightJump Feature Overview](https://github.com/nod5/HighlightJump/blob/master/images/HighlightJump_youtube_screenshot.png?raw=true)](https://www.youtube.com/watch?v=AcVI616W5D8)
 
@@ -59,10 +59,6 @@ Tip: Copy a `HighlightJump.ahk` shortcut to Startup folder in Windows.
 
 <kbd>Ctrl + Lbutton (click drag)</kbd> : Draw rectangle, then <kbd>A/Y/R/G</kbd> to make highlight
 
-# License  
-Free Software GPLv3 by github.com/nod5  
-Icon CC-BY-3.0 by p.yusukekamiyamane.com  
-
 # .ini file options
 
 Edit `HighlightJump.ahk.ini` to change these options and then reload HighlightJump.  
@@ -71,6 +67,9 @@ Edit `HighlightJump.ahk.ini` to change these options and then reload HighlightJu
 - `QShortcut=1` to use `Q` to show quick jump menu.  
 - `SelectionLabel=1` to when creating a quick jump use selection as label in quick jump list.  
 - `CapsLockErase=1` to use `CapsLock (hold)` to remove all highlighting mouse moves over. Use if touchpad palm tracking blocks `E`.  
+
+# License  
+Free Software GPLv3 by github.com/nod5  
 
 # FAQ
 
