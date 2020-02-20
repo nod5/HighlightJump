@@ -1,6 +1,6 @@
 ﻿; ---------------------------------------------------------------------
 ; HighlightJump
-; 2020-02-18
+; 2020-02-20
 ; ---------------------------------------------------------------------
 ; AutoHotkey app to add, remove and jump between highlights in SumatraPDF
 ; Free software GPLv3
@@ -136,7 +136,7 @@ vShortcuts =
   (LTrim
   ▄▄▄▄▄▄▄      HighlightJump      ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
   
-  version 2020-02-18    https://github.com/nod5/HighlightJump
+  version 2020-02-20    https://github.com/nod5/HighlightJump
 
   ▄▄▄▄▄▄▄  Keyboard Shortcuts  ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 
@@ -1251,8 +1251,7 @@ SmartPageSelect(vToolTipText)
 
 
 
-; function: get pagenumber under mouse cursor from active SumatraPDF window
-; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
+; function: copy selected text in active SumatraPDF window
 ; IDM_COPY_SELECTION              420
 SumatraCopySelection(ByRef vClip) {
   if !WinActive("ahk_class SUMATRA_PDF_FRAME")
@@ -1261,7 +1260,7 @@ SumatraCopySelection(ByRef vClip) {
   Clipboard := ""
   ; copy selection
   SendMessage, 0x111, 420, 0,, A
-  ; hide SumatraPDF notification "Select content with Ctrl+left mouse button" shown if no selection
+  ; hide notification "Select content with Ctrl+left mouse button" shown if no selection
   Control, Hide, , SUMATRA_PDF_NOTIFICATION_WINDOW1, A
   vClip := Clipboard
   Clipboard := vClipBackup
@@ -1388,42 +1387,45 @@ SetSystemCursor(Cursor := "")
 ; LegacyMethods start
 ; -------------------------------------------------------------
 
+
+; ------------------------------------------
+; notes on SumatraPDF position helper notification
+; ------------------------------------------
+; Shortcut "m" shows position helper notification in top left document corner.
+; Reports X Y document canvas position that the mouse is over.
+;   Example: top left document corner reports 0 0 in fixed page mode.
+; Press "m" again to cycle notification units: pt -> mm -> in
+; .smx files use unit pt for highlight rect corner data.
+; Once notification exists we can hide it and still read with ControlGetText.
+; "Esc" closes the notification even when hidden.
+
+; Notification text format:
+; "Cursor position: 51,0 x 273,5 pt"
+; "Cursor position: 18,0 x 96,4 mm"
+; "Cursor position: 0,71 x 3,8 in"
+;
+; - Do not use the ":" in regex because not present in all translations
+; - Fraction separator can be "," or "." depending on translation/locale
+;     Example: Dutch language setting: "Cursor positie 0,0 x 4,77 in"
+; - Thousands separator can be (comma dot space) depending on translation/locale
+; - The pt/mm/in unit string is not translated so can be used as pattern.
+; - Check for "pt" via SubStr on last two characters because
+;     InStr could give false positive on "pt" in preceding text in some language.
+; - SumatraPDF source: SumatraPDF.cpp function UpdateCursorPositionHelper
+; - https://github.com/nod5/HighlightJump/issues/6
+; ------------------------------------------
+
 ; LegacyMethods
 ; function: prepare SumatraPDF for document pt position check
 ; Returns 1 if prepared
 PrepareForCanvasPosCheck()
 {
-
-  ; ------------------------------------------
-  ; notes on SumatraPDF position helper notification
-  ; ------------------------------------------
-  ; Shortcut "m" shows position helper notification in top left document corner.
-  ; Reports X Y document canvas position that the mouse is over.
-  ;   Example: top right document corner reports 0 0 in fixed page mode.
-  ; Press "m" again to cycle notification units: pt -> mm -> in
-  ; .smx files use unit pt for highlight rect corner data.
-  ; Once notification exists we can hide it and still read with ControlGetText.
-  ; "Esc" closes the notification even when hidden.
-
-  ; Notification text format:
-  ; "Cursor position: 51,0 x 273,5 pt"
-  ; "Cursor position: 18,0 x 96,4 mm"
-  ; "Cursor position: 0,71 x 3,8 in"
-  ;
-  ; Note: do not use the "," in regex because it is char "." on some PCs
-  ; Note: do not use the ":" in regex because not present in all translations
-  ; Example: Dutch language setting: "Cursor positie 0,0 x 4,77 in"
-  ; 
-  ; Note: The pt/mm/in unit string is not translated so can be used as pattern.
-  ; Check via SubStr since InStr could give false positive in some language.
-  ; ------------------------------------------
-
   ; check if popup exists (hidden or visible)
   ControlGetText, vPos, SUMATRA_PDF_NOTIFICATION_WINDOW1, A
 
-  ; if not exist then send "m" to create popup
-  ; note: SumatraPDF changes the mouse cursor to a cross while the popup exists
-  ; note: use SubStr since InStr could give false positive in some language.
+  ; if not exist then send "m" to create position helper notification
+  ; note: SumatraPDF changes the mouse cursor to a cross while the notification exists
+  ; Check for "pt" via SubStr on last two characters
   If !(SubStr(vPos, -1) = "pt")
   {
     Loop, 3
@@ -1452,14 +1454,21 @@ SumatraGetCanvasPosFromNotification(ByRef x, Byref y) {
   ; get mouse position in SumatraPDF canvas in pt units (one decimal)
   ControlGetText, vPos, SUMATRA_PDF_NOTIFICATION_WINDOW1, A
   ; extract X Y pos with decimals and round later
-  ; note: do not use the "," in regex because it is char "." on some PCs
-  ; note: do not use the ":" in regex because not present in all translations
-  ; test after discussion at https://github.com/nod5/HighlightJump/issues/6
-  ; mockup hybrid strings to show possible combinations of digits and separators (space comma dot)
+
+  ; - Do not use the ":" in regex because not present in all translations
+  ; - Fraction separator can be "," or "." depending on translation/locale
+  ;     Example: Dutch language setting: "Cursor positie 0,0 x 4,77 in"
+  ; - Thousands separator can be (comma dot space) depending on translation/locale
+  ; - The pt/mm/in unit string is not translated so can be used as pattern.
+  ; - Check for "pt" via SubStr on last two characters because
+  ;     InStr could give false positive on "pt" in preceding text in some language.
+  ; - SumatraPDF source: SumatraPDF.cpp function UpdateCursorPositionHelper
+  ; - https://github.com/nod5/HighlightJump/issues/6
+
+  ; Hybrid test string that covers all character variants
   ; ": 4.401 000,3 x 341,000.3 pt"
   ; "a 4.401 000,3 x 341,000.3 pt"
-  ; regex sandbox: https://regex101.com/r/QAU3Kt/1
-  ; first step regex pattern
+  ; regex pattern match
   vPattern := "\D ([\d \.,]+)[\.,](\d+) x ([\d \.,]+)[\.,](\d+) pt$"
   RegExMatch(vPos, vPattern, vPos)
   ; remove separators to get integers
