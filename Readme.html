@@ -170,7 +170,7 @@ color: #111;
 <body>
 <h1 id="highlightjump">HighlightJump</h1>
 <p>AutoHotkey app to add, remove and jump to color highlights in SumatraPDF</p>
-<p>Version 2020-02-18 - Free software GPLv3 - by Nod5</p>
+<p>Version 2020-02-20 - Free software GPLv3 - by Nod5</p>
 <p><a href="https://github.com/nod5/HighlightJump/">https://github.com/nod5/HighlightJump/</a></p>
 <p><a href="https://www.youtube.com/watch?v=AcVI616W5D8">Feature overview (YouTube)</a></p>
 <h1 id="setup">Setup</h1>
@@ -212,16 +212,15 @@ Tip: Copy a <code>HighlightJump.ahk</code> shortcut to Startup folder in Windows
 <p><code>Rbutton + Lbutton (hold)</code> : Remove all highlighting mouse moves over</p>
 <p><code>Rbutton (hold) + Scroll Up/Down</code> : Jump to next/previous page with highlight</p>
 <p><code>Ctrl + Lbutton (click drag)</code> : Draw rectangle, then <code>A/Y/R/G</code> to make highlight</p>
-<h1 id="license">License</h1>
-<p>Free Software GPLv3 by github.com/nod5<br />
-Icon CC-BY-3.0 by p.yusukekamiyamane.com</p>
 <h1 id="ini-file-options">.ini file options</h1>
-<p>Edit <code>HighlightJump.ahk.ini</code> to change these options.<br />
+<p>Edit <code>HighlightJump.ahk.ini</code> to change these options and then reload HighlightJump.<br />
 - <code>RedGreenRG=0</code> to use <code>Y</code> for red and <code>U</code> for green instead of <code>R</code> <code>G</code>.<br />
 - <code>Experimental=1</code> to use experimental features (requires modified SumatraPDF C++ source)<br />
 - <code>QShortcut=1</code> to use <code>Q</code> to show quick jump menu.<br />
 - <code>SelectionLabel=1</code> to when creating a quick jump use selection as label in quick jump list.<br />
 - <code>CapsLockErase=1</code> to use <code>CapsLock (hold)</code> to remove all highlighting mouse moves over. Use if touchpad palm tracking blocks <code>E</code>.</p>
+<h1 id="license">License</h1>
+<p>Free Software GPLv3 by github.com/nod5</p>
 <h1 id="faq">FAQ</h1>
 <p><strong>Q</strong> Which filetypes does HighlightJump support?<br />
 <strong>A</strong> <code>PDF DJVU DJV</code> and if SumatraPDF advanced settings section <code>ChmUI</code> is set to <code>UseFixedPageUI = true</code> then also <code>CHM EPUB MOBI TXT LOG</code>. The goal is to support all filetypes that SumatraPDF Prerelease can <a href="https://www.sumatrapdfreader.org/docs/Supported-document-formats.html">open</a> <em>and</em> annotate.</p>
