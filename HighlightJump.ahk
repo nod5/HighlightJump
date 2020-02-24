@@ -1,6 +1,6 @@
 ﻿; ---------------------------------------------------------------------
 ; HighlightJump
-; 2020-02-20
+; 2020-02-24
 ; ---------------------------------------------------------------------
 ; AutoHotkey app to add, remove and jump between highlights in SumatraPDF
 ; Free software GPLv3
@@ -136,7 +136,7 @@ vShortcuts =
   (LTrim
   ▄▄▄▄▄▄▄      HighlightJump      ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
   
-  version 2020-02-20    https://github.com/nod5/HighlightJump
+  version 2020-02-24    https://github.com/nod5/HighlightJump
 
   ▄▄▄▄▄▄▄  Keyboard Shortcuts  ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 
@@ -271,9 +271,10 @@ Return
       ; use any selection as label for quick jump menu
       ; todo: verify that selection is on vPage
       SumatraCopySelection(vJumpLabel)  ; ByRef
-      ; max 30 characters, lowercase
+      ; max 30 characters
       vJumpLabel := SubStr(vJumpLabel, 1, 30)
-      vJumpLabel := Format("{:L}", vJumpLabel)
+      ; lowercase
+      ;vJumpLabel := Format("{:L}", vJumpLabel)
     }
     
     ToolTip stored
@@ -1350,8 +1351,6 @@ Receive_WM_COPYDATA(wParam, lParam)
   lpData := StrGet(lpDataAdress)
   ; set super-global variable
   vFilepathReturn := lpData
-
-  ; MsgBox % dwData "|" cbData "|" lpData
   Return
 }
 
