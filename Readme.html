@@ -170,7 +170,7 @@ color: #111;
 <body>
 <h1 id="highlightjump">HighlightJump</h1>
 <p>AutoHotkey app to add, remove and jump to color highlights in SumatraPDF</p>
-<p>Version 2020-02-20 - Free software GPLv3 - by Nod5</p>
+<p>Version 2020-02-24 - Free software GPLv3 - by Nod5</p>
 <p><a href="https://github.com/nod5/HighlightJump/">https://github.com/nod5/HighlightJump/</a></p>
 <p><a href="https://www.youtube.com/watch?v=AcVI616W5D8">Feature overview (YouTube)</a></p>
 <h1 id="setup">Setup</h1>
@@ -236,6 +236,8 @@ Tip: Copy a <code>HighlightJump.ahk</code> shortcut to Startup folder in Windows
 <strong>A</strong> Saving annotations (highlighting) to an external plaintext file <code>filename.pdf.smx</code> is necessary for HighlightJump to read/edit them. Showing full file path in window title is currently necessary for HighlightJump to know the file path. There is an experimental workaround, see further down.</p>
 <p><strong>Q</strong> I do not like that <code>R</code> and <code>G</code> override <a href="https://www.sumatrapdfreader.org/manual.html">SumatraPDF shortcuts</a>.<br />
 <strong>A</strong> Easy recall (“R for red”) can be worth a small shortcut conflict. HighlightJump creates <code>Ctrl+R</code> as replacement <code>reload</code> shortcut and SumatraPDF already has <code>Ctrl+G</code> for <code>go to</code>. If you disagree then in <code>HighlightJump.ahk.ini</code> set <code>RedGreenRG=0</code>. That makes <code>Y</code> red and <code>U</code> green.</p>
+<p><strong>Q</strong> How do I change default highlight color from yellow to something else?<br />
+<strong>A</strong> First, in SumatraPDF advanced settings section <code>AnnotationDefaults</code> change <code>HighlightColor = #ffff60</code> to a new hex color code. Next edit <code>HighlightJump.ahk</code> line <code>vYellow := &quot;ffff60&quot;</code> to the same new color code. Restart HighlightJump and SumatraPDF.</p>
 <p><strong>Q</strong> How do the quick jump keys work?<br />
 <strong>A</strong> Hold down one of <code>1 / 2 / 3 / 4</code> to store the current pagenumber. Later tap (short press) that key again to jump to the stored page. While on that page tap again to undo the jump. Press <code>5</code> to show a list of stored pages. Use it for temporary jumps. Clears when HighlightJump is closed. Independent from highlights. Similar to <a href="https://mupdf.com/docs/manual-mupdf-gl.html">MuPDF Viewer</a> numbered bookmarks.</p>
 <p><strong>Q</strong> Will pdf files with an UNC file path work?<br />

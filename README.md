@@ -2,7 +2,7 @@
 
 AutoHotkey app to add, remove and jump to color highlights in SumatraPDF  
 
-Version 2020-02-20  -  Free software GPLv3  -  by Nod5  
+Version 2020-02-24  -  Free software GPLv3  -  by Nod5  
   
 [![HighlightJump Feature Overview](https://github.com/nod5/HighlightJump/blob/master/images/HighlightJump_youtube_screenshot.png?raw=true)](https://www.youtube.com/watch?v=AcVI616W5D8)
 
@@ -93,6 +93,9 @@ Free Software GPLv3 by github.com/nod5
 
 **Q** I do not like that `R` and `G` override [SumatraPDF shortcuts](https://www.sumatrapdfreader.org/manual.html).  
 **A** Easy recall ("R for red") can be worth a small shortcut conflict. HighlightJump creates `Ctrl+R` as replacement `reload` shortcut and SumatraPDF already has `Ctrl+G` for `go to`. If you disagree then in `HighlightJump.ahk.ini` set `RedGreenRG=0`. That makes `Y` red and `U` green.  
+
+**Q** How do I change default highlight color from yellow to something else?  
+**A** First, in SumatraPDF advanced settings section `AnnotationDefaults` change `HighlightColor = #ffff60` to a new hex color code. Next edit `HighlightJump.ahk` line `vYellow := "ffff60"` to the same new color code. Restart HighlightJump and SumatraPDF.  
 
 **Q** How do the quick jump keys work?  
 **A** Hold down one of `1 / 2 / 3 / 4` to store the current pagenumber. Later tap (short press) that key again to jump to the stored page. While on that page tap again to undo the jump. Press `5` to show a list of stored pages. Use it for temporary jumps. Clears when HighlightJump is closed. Independent from highlights. Similar to [MuPDF Viewer](https://mupdf.com/docs/manual-mupdf-gl.html) numbered bookmarks.  
