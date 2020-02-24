@@ -7,6 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ### Added
 - SumatraPDF_modifications: get pagenumber under mouse, count visible pages
 
+## [2020-02-24] - 2020-02-24
+### Added
+- Readme instruction on changing default highlight color
+
+### Changed
+- quick jump label no longer force lowercase
+
 ## [2020-02-20] - 2020-02-20
 ### Added
 - Jump shortcuts (`Ctrl + PgUp` ...) also work on Numpads (`Ctrl + Numpad PgDn` ...)
