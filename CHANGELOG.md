@@ -3,9 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
-## [Unreleased]
+## [2020-02-25] - 2020-02-25
 ### Added
-- SumatraPDF_modifications: get pagenumber under mouse, count visible pages
+- option: experimental SendMessage methods (highlight selection, annotate dot under mouse, get page under mouse, get document canvas X Y pt under mouse, get foreground page). (requires SumatraPDF C++ edits)
 
 ## [2020-02-24] - 2020-02-24
 ### Added

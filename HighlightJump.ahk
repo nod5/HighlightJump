@@ -1,6 +1,6 @@
 ﻿; ---------------------------------------------------------------------
 ; HighlightJump
-; 2020-02-24
+; 2020-02-25
 ; ---------------------------------------------------------------------
 ; AutoHotkey app to add, remove and jump between highlights in SumatraPDF
 ; Free software GPLv3
@@ -101,7 +101,6 @@ IniRead, vExperimental, % vIniFile, Settings, Experimental, %A_Space%
 ; Then use experimental SendMessage methods to get document filepath and canvas position
 ;   advantages: silent, fast, reliable, no "FullPathInTitle = true" requirement
 ;   note: requires custom SumatraPDF compiled with C++ edits, see GitHub
-;   note: currently only works with SumatraPDF 32-bit (not 64-bit)
 ; Else use slower, non-silent legacy methods
 ;   note: requires SumatraPDF Settings > Advanced Options > FullPathInTitle = true
 ;   note: position notification will sometimes be briefly visible in SumatraPDF
@@ -136,7 +135,7 @@ vShortcuts =
   (LTrim
   ▄▄▄▄▄▄▄      HighlightJump      ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
   
-  version 2020-02-24    https://github.com/nod5/HighlightJump
+  version 2020-02-25    https://github.com/nod5/HighlightJump
 
   ▄▄▄▄▄▄▄  Keyboard Shortcuts  ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 
@@ -254,15 +253,12 @@ Return
   If vStorePage
   {
     ; case: key hold
-
-    vJumpLabel := ""
     ; get and store current page
+    vJumpLabel := ""
+
     If !vLegacyMethods
-    {
-      ; if only one page visible or only one nearly fully visible then use that
-      ; else let user click to select a page
       vPage := SmartPageSelect("store quick jump")
-    }
+
     if !vPage
       return
 
@@ -419,8 +415,10 @@ e::
     ; change system cursor to cross during highlight removal
     SetSystemCursor("CROSS")
 
-  ; is document epub or pdf?
-  vIsEpub := RequiresEpubFix(vFile, vEpubExtensions)
+  vIsEpub := 0
+  if vLegacyMethods
+    ; is document epub or pdf?
+    vIsEpub := RequiresEpubFix(vFile, vEpubExtensions)
   
   ; timer to delete all highlights under mouse until hotkey release
   vOldSmx := vSmx
@@ -457,9 +455,9 @@ remove_highlight_under_mouse:
   Else
   {
     ; SendMessage method to get mouse position in SumatraPDF canvas in pt units (no decimals)
-    SumatraGetCanvasPos(mx, my) ; ByRef
-    ; SendMessage method to get page num at point under mouse in SumatraPDF canvas
-    SumatraGetPageAtPoint(vPage) ; Byref
+    SumatraGetCanvasPosAtCursor(mx, my) ; ByRef
+    ; SendMessage method to get page num under mouse cursor in SumatraPDF canvas
+    SumatraGetPageAtCursor(vPage) ; Byref
   }
 
   if !mx or !my or !vPage
@@ -477,6 +475,7 @@ remove_highlight_under_mouse:
   ; then the text will reflow and no longer line up with the highlights.
   ; There is no workaround for that at the moment.
   ; Note: same issue for filetypes |epub|mobi|chm|txt|log| and maybe more
+  ; Note: workaround only required when using LegacyMethods
   vMultiplier := vIsEpub ? 1.346364632809646 : 1
   ; note: rounding always needed if vLegacyMethods because then mx/my has decimal
   mx := round(mx * vMultiplier)
@@ -675,7 +674,15 @@ d::
     Return
 
   ToggleHighlightsOnOff(vFile, "on")
-  
+
+
+  if !vLegacyMethods
+  {
+    SumatraAnnotateDotAtCursor(vBlue) ; note: also redraws page
+    SaveAnnotationToSmx()
+    Return
+  }
+
   If vLegacyMethods
   {
     ; prepare SumatraPDF UI notification for document pt position reading
@@ -689,17 +696,20 @@ d::
   Else
   {
     ; SendMessage method to get mouse position in SumatraPDF canvas in pt units (no decimal)
-    SumatraGetCanvasPos(vPosX, vPosY) ; ByRef
-    ; SendMessage method to get page num at point under mouse in SumatraPDF canvas
-    SumatraGetPageAtPoint(vPage) ; Byref
+    SumatraGetCanvasPosAtCursor(vPosX, vPosY) ; ByRef
+    ; SendMessage method to get page num under mouse cursor in SumatraPDF canvas
+    SumatraGetPageAtCursor(vPage) ; Byref
   }
 
   if !vPosX or !vPosY or !vPage
     Return
 
   ; workaround for SumatraPDF .epub pt position bug/issue (see earlier code comments)
-  vIsEpub := RequiresEpubFix(vFile, vEpubExtensions)
-    
+  vIsEpub := 0
+  if vLegacyMethods
+    ; is document epub or pdf?
+    vIsEpub := RequiresEpubFix(vFile, vEpubExtensions)
+
   vMultiplier := vIsEpub ? 1.346364632809646 : 1
   ; note: rounding always needed if vLegacyMethods because then mx/my has decimal
   vPosX := round(vPosX * vMultiplier)
@@ -788,6 +798,13 @@ Lbutton & Rbutton::  ; yellow, or longpress to cycle
     GetSmx(vSmx, vFile) ; ByRef vSmx
     ; note: sets length 0 if no smx file yet exists
     vSmxLen := StrLen(vSmx)
+  }
+  
+  if !vLegacyMethods
+  {
+    SumatraAnnotateSelection(vHighlightColor)
+    SaveAnnotationToSmx()
+    Return
   }
   
   ; Make annotation (yellow)
@@ -931,17 +948,15 @@ CanvasFocused() {
 }
 
 ; function: pass hotkey string to SumatraPDF
-; note: filters out mouse hotkeys or hotkeys with modifiers
-Passthrough(vHotkey)
-{
+; note: filters out mouse hotkeys and hotkeys with modifiers
+Passthrough(vHotkey) {
   ; only pass single character keys (a, e, 1, ...)
   If (StrLen(vHotkey) = 1)
     Send % vHotkey
 }
 
 ; function: pass hotkey string to SumatraPDF if unsupported document extension
-PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, vHotkey)
-{
+PassthroughIfNotSupportedExt(vFile, vSupportedExtensions, vHotkey) {
   if SupportedExtension(vFile, vSupportedExtensions)
     Return
   Passthrough(vHotkey)
@@ -959,8 +974,7 @@ SupportedExtension(vFile, vSupportedExtensions) {
 
 
 ; function: briefly flash new jump filter color in colored rectangle
-FlashColorSquare(vSquareSize, vJumpColor, vSquarePos := "window", vTimeout := 1)
-{
+FlashColorSquare(vSquareSize, vJumpColor, vSquarePos := "window", vTimeout := 1) {
   vWinId := WinExist("A")
   If (vSquarePos = "mouse")
   {
@@ -1004,8 +1018,7 @@ SaveSmx(vFile, vSmx) {
 
 
 ; function: create .smx with standard header data
-SmxCreateWithHeader(vFile)
-{
+SmxCreateWithHeader(vFile) {
   ; -------------------------
   ; .smx header format
   ; -------------------------
@@ -1103,11 +1116,11 @@ Send_WM_COPYDATA(WinTitle, dwData, lpData) {
 
 
 ; function: get filepath to current document in active SumatraPDF window
-GetFile(ByRef vFile){
+GetFile(ByRef vFile) {
   if vLegacyMethods ; super-global variable
-    vFile := SumatraGetActiveDocumentFilePathFromTitle()
+    vFile := SumatraGetDocumentFilepathFromTitle()
   else
-    vFile := SumatraGetActiveDocumentFilepath()
+    vFile := SumatraGetDocumentFilepath()
   if vFile
     Return 1
 }
@@ -1158,18 +1171,18 @@ GetPageLen(ByRef vPage, ByRef vLen) {
 
 
 
-; function: get cursor canvas x y pos in pt units from active SumatraPDF window
+; function: get canvas X Y pos in pt units at mouse cursor in active SumatraPDF window
 ; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
-; IDM_REPLY_PT_POS                522
+; IDC_REPLY_POS = 1503
 ; note: SumatraPDF returns up to 10 digits (, 32-bit signed integer, range up to 2147483648)
 ; with postion data packed in format XXXXXYYYYY
 ; X < 21474. Y <= 99999. Y is zero padded.
-SumatraGetCanvasPos(ByRef x, ByRef y) {
+SumatraGetCanvasPosAtCursor(ByRef x, ByRef y) {
   if !WinActive("ahk_class SUMATRA_PDF_FRAME")
     Return
-  SendMessage, 0x111, 522, 0,, A
+  SendMessage, 0x111, 1503, 0,, A
   vReturn := ErrorLevel
-  if vReturn
+  if (vReturn and vReturn != "FAIL")
   {
     ;get X Y (add 0 to remove zero-padding)
     y := 0 + SubStr(vReturn, -4)    ;last 5 digits
@@ -1180,15 +1193,14 @@ SumatraGetCanvasPos(ByRef x, ByRef y) {
 
 
 
-; function: get pagenumber under mouse cursor from active SumatraPDF window
+; function: get page number under mouse cursor in active SumatraPDF window
 ; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
-; IDM_REPLY_PAGE_NUM              523
+; IDC_REPLY_PAGE = 1504
 ; note: SumatraPDF returns 0 if cursor not over any page
-SumatraGetPageAtPoint(ByRef vPage) {
+SumatraGetPageAtCursor(ByRef vPage) {
   if !WinActive("ahk_class SUMATRA_PDF_FRAME")
     Return
-
-  SendMessage, 0x111, 523, 0,, A
+  SendMessage, 0x111, 1504, 0,, A
   vPage := ErrorLevel = "FAIL" ? 0 : ErrorLevel
 }
 
@@ -1198,55 +1210,64 @@ SumatraGetPageAtPoint(ByRef vPage) {
 ; function: show tooltip asking user to click page and return its page number
 ; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp (in called functions)
 ClickPageGetPageNumber(vToolTipText) {
-  ; show tooltip and wait for Lbutton, cancel via Esc or timeout
+  ; show tooltip and wait for left mouse click to get page under mouse
+  ; cancel on Esc or timeout or active window change
   ToolTip, % vToolTipText
-  t := A_TickCount
-  ; loop multiple keywait with short timeouts
-  ; todo: better method? cleanup?
+  vTick := A_TickCount
   Loop
   {
+    ;note: KeyWait ErrorLevel: 1 if timeout, 0 if key detected
     KeyWait, Lbutton, D T0.02
     If !ErrorLevel
-      break
+    {
+      ToolTip
+      SumatraGetPageAtCursor(vPage) ; ByRef
+      Return vPage
+    }
     KeyWait, Esc, D T0.02
-    If !ErrorLevel or (A_TickCount > t + 3000) or !WinActive("ahk_class SUMATRA_PDF_FRAME")
+    If !ErrorLevel or (A_TickCount > vTick + 3000) or !WinActive("ahk_class SUMATRA_PDF_FRAME")
     {
       ToolTip
       return
     }
   }
-  ToolTip
-  SumatraGetPageAtPoint(vPage) ; ByRef
-  Return vPage
 }
 
 
 
 
-; function: get the only (near fully) visible page or else let user click to select page
+; function: get foreground page or else let user click to select a page
 ; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp (in called functions)
-; vToolTipText = string to fill blank in tooltip "Click a page to _____ (Esc = cancel)"
-SmartPageSelect(vToolTipText)
-{
-  ; if only one page is visible or only one is near fully visible
-  ; then return that page number
-  ; else ask user to click page to return its page number
-  SumatraGetCountPagesVisible(vVisiblePagesCount, vNearFullyVisibleCount, vLastNearFullyVisible)
-  ; case1: only one page visible
-  ; case2: many visible but only one near fully visible (>= 80%)
-  If (vVisiblePagesCount = 1) or (vNearFullyVisibleCount = 1)
-  {
-    If vLastNearFullyVisible
-      vPage := vLastNearFullyVisible
-  }
-  ; case3: many near fully visible *or* function returned 0: ask user to click to select page
-  Else
+; vToolTipText: string to fill blank in tooltip "Click a page to _____ (Esc = cancel)"
+SmartPageSelect(vToolTipText) {
+  ; "foreground" page = only one page >0% visible or only one page >50% visible
+  ; if no unique foreground page then let user click to select a page
+  SumatraGetForegroundPage(vPage) ; ByRef
+  if !vPage
   {
     ; show tooltip and wait for Lbutton, cancel via Esc or timeout
     vToolTipText := "Click a page to " vToolTipText "`n(Esc = cancel)"
     vPage := ClickPageGetPageNumber(vToolTipText)
   }
   Return vPage
+}
+
+
+
+
+; function: get foreground page pagenumber in active SumatraPDF window
+; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
+; IDC_REPLY_FOREGROUND_PAGE = 1505
+; "foreground" page = only one page >0% visible or only one page >50% visible
+; returns zero if no unique foreground page found
+SumatraGetForegroundPage(ByRef vForegroundPage) {
+  if !WinActive("ahk_class SUMATRA_PDF_FRAME")
+    Return
+  SendMessage, 0x111, 1505, 0,, A
+  vReturn := ErrorLevel
+  vForegroundPage := 0
+  if (vReturn and vReturn != "FAIL")
+    vForegroundPage := vReturn
 }
 
 
@@ -1271,41 +1292,12 @@ SumatraCopySelection(ByRef vClip) {
 
 
 
-; function: get number of pages visible in active SumatraPDF window
-; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
-; IDM_REPLY_PAGES_VISIBLE         524
-; returned data is packed in format LLLLLNNVV where
-; V = number of visible pages               >  0%  visible
-; N = number of near fully visible pages    >= 80% visible
-; L = pagenumber for last near fully visible page
-SumatraGetCountPagesVisible(ByRef vVisiblePagesCount, ByRef vNearFullyVisibleCount, ByRef vLastNearFullyVisible) {
-  if !WinActive("ahk_class SUMATRA_PDF_FRAME")
-    Return
-  SendMessage, 0x111, 524, 0,, A
-  vReturn := ErrorLevel
-  vVisiblePagesCount := vNearFullyVisibleCount := vLastNearFullyVisible := 0
-  if (vReturn != "FAIL")
-  {
-    ; note: add 0 to remove zero-padding
-    vVisiblePagesCount       := 0 + SubStr(vReturn, -1)     ; VV
-    if (StrLen(vReturn) > 2)
-      vNearFullyVisibleCount  := 0 + SubStr(vReturn, -3, 2) ; FF
-    if (StrLen(vReturn) > 4)
-      vLastNearFullyVisible   := 0 + SubStr(vReturn, 1, -4) ; LLLLL
-  }
-}
-
-
-
-
 ; function: get filepath for active document in active SumatraPDF window
 ; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
 ; - make SumatraPDF return data via WM_COPYDATA
-; - IDM_COPY_FILE_PATH          520
-; - Note: Works if SumatraPDF is compiled 32bit and AutoHotkey 32bit/64bit unicode
-;         Fails if SumatraPDF is compiled 64bit
-SumatraGetActiveDocumentFilepath() {
-  
+; - IDC_REPLY_FILE_PATH = 1500
+; - Works in SumatraPDF 32bit/64bit and AutoHotkey 32bit/64bit unicode, all combinations
+SumatraGetDocumentFilepath() {
   if !WinActive("ahk_class SUMATRA_PDF_FRAME")
     Return
   vWinId := WinExist("A")
@@ -1316,34 +1308,32 @@ SumatraGetActiveDocumentFilepath() {
   vFilepathReturn := ""
   ; make first call to SumatraPDF
   ; - 0x111 is WM_COMMAND
-  ; - IDM_COPY_FILE_PATH = 520
+  ; - IDM_COPY_FILE_PATH = 1500
   ; - A_SCriptHwnd is Hwnd to this script's hidden window
   ;   Note: A_SCriptHwnd is hex, WinTitle ahk_id accepts both hex and dec values
-  SendMessage, 0x111, 520, A_ScriptHwnd, , % "ahk_id " vWinId
+  SendMessage, 0x111, 1500, A_ScriptHwnd, , % "ahk_id " vWinId
+
+  ; todo test more if this delays operation and/or improves stability
+  ; wait for message up to 250 ms
+  ;if !vFilePathReturn
+  ;  While (!vFilePathReturn and A_Index < 50)
+  ;    sleep 5
   
   ; after Receive_WM_COPYDATA has reacted, stop listener
   OnMessage(0x4a, "Receive_WM_COPYDATA", 0)
-  
   ; check for \ to ensure filepath an not only filename
   If InStr(vFilepathReturn, "\")
     return vFilepathReturn
 }
 
 
-Receive_WM_COPYDATA(wParam, lParam)
-{
+Receive_WM_COPYDATA(wParam, lParam) {
   ; https://docs.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-copydatastruct
   ; ULONG_PTR dwData;  = unsigned __int64 
   ; DWORD     cbData;
   ; PVOID     lpData;
-  
   ; https://www.autohotkey.com/docs/commands/NumGet.htm
-  ; defaults to "UPtr"
-  ; "Unsigned 64-bit integers are not supported, as AutoHotkey's native integer type is Int64"
-  
-  ; works if modified SumatraPDF 32bit sends to AutoHotkey 32bit/64bit unicode
-  ; fails if SumatraPDF 64bit
-
+  ; Works in SumatraPDF 32bit/64bit and AutoHotkey 32bit/64bit unicode, all combinations
   ; note: dwData only works if treated as utf-8, why? String is also backwards, endianness issue?
   dwData := StrGet(lParam, A_PtrSize, "UTF-8")
   cbData := NumGet(lParam + 1*A_PtrSize)
@@ -1355,12 +1345,58 @@ Receive_WM_COPYDATA(wParam, lParam)
 }
 
 
+
+
+; function: color annotate selection in active SumatraPDF document
+; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
+; IDC_ANNOTATE_SEL_COLOR = 1501
+; note: SumatraPDF expects vColor to be type COLORREF
+; https://docs.microsoft.com/en-us/windows/win32/gdi/colorref
+; "COLORREF value has the following hexadecimal form: 0x00bbggrr"
+SumatraAnnotateSelection(vColor, vRGB := 1) {
+  if !WinActive("ahk_class SUMATRA_PDF_FRAME")
+    Return
+  if vRGB
+    ; shift RGB to BGR value
+    vColor := RGBColorToBGR(vColor)
+  vColor := 0x00 vColor
+  SendMessage, 0x111, 1501, vColor,, A
+}
+
+
+; function: color annotate dot at cursor on page in active SumatraPDF window
+; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
+; IDC_ANNOTATE_DOT = 1502
+; note: the dot is an 8 x 8 pt filled rectangle
+; note: SumatraPDF expects vColor to be type COLORREF
+; https://docs.microsoft.com/en-us/windows/win32/gdi/colorref
+; "COLORREF value has the following hexadecimal form: 0x00bbggrr"
+SumatraAnnotateDotAtCursor(vColor, vRGB := 1) {
+  if !WinActive("ahk_class SUMATRA_PDF_FRAME")
+    Return
+  if vRGB
+    ; shift RGB to BGR value
+    vColor := RGBColorToBGR(vColor)
+  vColor := 0x00 vColor
+  SendMessage, 0x111, 1502, vColor,, A
+}
+
+
+; function: convert RGB 6 character hex color code to BGR
+; example:  "8e3e2d" -> "2d3e8e"
+RGBColorToBGR(vColor) {
+  If (StrLen(vColor) = 6)
+    Return SubStr(vColor,5,2) SubStr(vColor,3,2) SubStr(vColor,1,2)
+}
+
+
+
+
 ; function: SetSystemCursor() set custom system cursor or restore default cursor
 ; - no parameter     : restore default cursor
 ; - parameter "CROSS": change custom system cursor to cross
 ; original function by Flipeador , https://www.autohotkey.com/boards/viewtopic.php?p=206703#p206703
-SetSystemCursor(Cursor := "")
-{
+SetSystemCursor(Cursor := "") {
   Static Cursors := {APPSTARTING: 32650, ARROW: 32512, CROSS: 32515, HAND: 32649, HELP: 32651, IBEAM: 32513
                     , NO: 32648, SIZEALL: 32646, SIZENESW: 32643, SIZENS: 32645
                     , SIZENWSE: 32642, SIZEWE: 32644, UPARROW: 32516, WAIT: 32514}
@@ -1417,8 +1453,7 @@ SetSystemCursor(Cursor := "")
 ; LegacyMethods
 ; function: prepare SumatraPDF for document pt position check
 ; Returns 1 if prepared
-PrepareForCanvasPosCheck()
-{
+PrepareForCanvasPosCheck() {
   ; check if popup exists (hidden or visible)
   ControlGetText, vPos, SUMATRA_PDF_NOTIFICATION_WINDOW1, A
 
@@ -1482,8 +1517,7 @@ SumatraGetCanvasPosFromNotification(ByRef x, Byref y) {
 ; LegacyMethods
 ; function: Get document filepath by parsing window title
 ; Dependency: SumatraPDF > Advanced Options > FullPathInTitle = true
-SumatraGetActiveDocumentFilePathFromTitle()
-{
+SumatraGetDocumentFilepathFromTitle() {
   WinGetTitle, vTitle, A
 
   ; ---------------------------------------------

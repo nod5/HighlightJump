@@ -170,7 +170,7 @@ color: #111;
 <body>
 <h1 id="highlightjump">HighlightJump</h1>
 <p>AutoHotkey app to add, remove and jump to color highlights in SumatraPDF</p>
-<p>Version 2020-02-24 - Free software GPLv3 - by Nod5</p>
+<p>Version 2020-02-25 - Free software GPLv3 - by Nod5</p>
 <p><a href="https://github.com/nod5/HighlightJump/">https://github.com/nod5/HighlightJump/</a></p>
 <p><a href="https://www.youtube.com/watch?v=AcVI616W5D8">Feature overview (YouTube)</a></p>
 <h1 id="setup">Setup</h1>
@@ -249,7 +249,7 @@ Tip: Copy a <code>HighlightJump.ahk</code> shortcut to Startup folder in Windows
 <h1 id="known-issues">Known Issues</h1>
 <p>When SumatraPDF is in continous page mode and (parts of) multiple pages are visible then <code>D</code>, <code>E</code> and <code>Ctrl + Del</code> and quick jump shortcuts operate on the page shown in SumatraPDF toolbar. That is sometimes not the page the mouse is over! Keep an eye out for that, otherwise you may add/remove highlights on the wrong page. Issue <a href="https://github.com/nod5/HighlightJump/issues/5">#5</a>.</p>
 <h1 id="experimental-improved-methods">Experimental: improved methods</h1>
-<p>HighlightJump has experimental methods to get the active document file path and canvas position via SendMessage. Improvements compared to default methods: faster, more reliable, silent, and no <code>FullPathInTitle</code> setting required.</p>
+<p>HighlightJump has experimental methods to interact with SumatraPDF via SendMessage. Improvements compared to default methods: faster, more reliable, silent, no <code>FullPathInTitle</code> setting required, solves the issue in continous page mode (see above).</p>
 <p>To try the experimental features:<br />
 - Edit SumatraPDF C++ source via instructions in folder <code>SumatraPDF_modifications</code> and compile as <code>32-bit Debug</code> version.<br />
 - In <code>HighlightJump.ahk.ini</code> set <code>Experimental=1</code>.</p>
