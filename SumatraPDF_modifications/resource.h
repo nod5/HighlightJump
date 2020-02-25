@@ -175,6 +175,15 @@
 #define IDC_FAV_LABEL_WITH_CLOSE        1106
 #define IDC_FAV_TREE                    1107
 #define IDC_TABBAR                      1110
+
+/* HighlightJump */
+#define IDC_REPLY_FILE_PATH             1500
+#define IDC_ANNOTATE_SEL_COLOR          1501
+#define IDC_ANNOTATE_DOT                1502
+#define IDC_REPLY_POS                   1503
+#define IDC_REPLY_PAGE                  1504
+#define IDC_REPLY_FOREGROUND_PAGE       1505
+
 #define IDB_TOOLBAR                     2000
 #define IDB_RELOADING_CUE               2010
 // TODO: which of these are (still) needed?

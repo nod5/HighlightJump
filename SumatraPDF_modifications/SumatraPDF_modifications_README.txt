@@ -1,0 +1,2 @@
+- The modifications are based on `resource.h` and SumatraPDF.cpp` from SumatraPDF-master 2020-02-25 (last commit 7ae8be8 , https://github.com/sumatrapdfreader/sumatrapdf/commit/7ae8be81121148e5b04b62a7ad2a1cd49fd67554 )
+- All modified sections have a comment with "HighlightJump", for easy searching

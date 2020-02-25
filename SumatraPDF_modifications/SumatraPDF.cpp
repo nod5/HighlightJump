@@ -1844,6 +1844,81 @@ void UpdateCursorPositionHelper(WindowInfo* win, PointI pos, NotificationWnd* wn
     }
 }
 
+
+//HighlightJump
+long GetForegroundPageNo(WindowInfo* win) {
+    if (!win->AsFixed()) {
+        return 0;
+    }
+    // based on:
+    // void DisplayModel::RenderVisibleParts() {
+    
+    // if only one page is >0% visible 
+    // or only one page is >50% visible
+    // then return pagenumber for that "foreground" page
+    // else return 0
+    int visibleCount = 0;
+    int HighlyVisibleCount = 0;
+    int lastVisiblePage = 0;
+    int lastHighlyVisiblePage = 0;
+
+    for (int pageNo = 1; pageNo <= win->AsFixed()->PageCount(); ++pageNo) {
+        PageInfo* pageInfo = win->AsFixed()->GetPageInfo(pageNo);
+        if (pageInfo->visibleRatio > 0.0) {
+            visibleCount++;
+            lastVisiblePage = pageNo;
+        }
+        if (pageInfo->visibleRatio > 0.5) {
+            HighlyVisibleCount++;
+            lastHighlyVisiblePage = pageNo;
+        }
+    }
+    if (visibleCount == 1) {
+        return lastVisiblePage;
+    }
+    if (HighlyVisibleCount == 1) {
+        return lastHighlyVisiblePage;
+    }
+    return 0;
+}
+
+// HighlightJump
+long GetCursorPageNo(WindowInfo* win) {
+    if (!win->AsFixed()) {
+        return 0;
+    }
+    PointI pt;
+    if (GetCursorPosInHwnd(win->hwndCanvas, pt)) {
+        int pageNo = win->AsFixed()->GetPageNoByPoint(pt);
+        if (pageNo > 0)
+            return pageNo;
+    }
+    return 0;
+}
+
+// HighlightJump
+// based on OnFrameKeyM()
+long GetCursorPosPt(WindowInfo* win) {
+    if (!win->AsFixed()) {
+        return 0;
+    }
+    PointI ptI;
+    if (GetCursorPosInHwnd(win->hwndCanvas, ptI)) {
+        EngineBase* engine = win->AsFixed()->GetEngine();
+        PointD pt = win->AsFixed()->CvtFromScreen(ptI);
+        long xPosition = floor(pt.x + 0.5); // round
+        long yPosition = floor(pt.y + 0.5);
+        // Returns LONG LRESULT to SendMessage caller
+        // LONG is at least a 32-bit signed integer (range to 2147483648)
+        // Therefore can fit the data if X < 21474 and Y <= 99999
+        // Pack data format: XXXXXYYYYY (zero-padded)
+        // Examples X305 Y21: 30500021 , X12001 Y24500: 1200124500
+        if (xPosition < 21474 && yPosition <= 99999)
+            return xPosition * 100000 + yPosition;
+    }
+    return 0;
+}
+
 void AssociateExeWithPdfExtension() {
     if (!HasPermission(Perm_RegistryAccess)) {
         return;
@@ -2660,6 +2735,45 @@ static void OnMenuShowInFolder(WindowInfo* win) {
     AutoFreeWstr args = str::Format(L"/select,%s", srcFileName);
     CreateProcessHelper(process, args);
 }
+
+// HighlightJump
+// based on CopySelectionToClipboard(), OnMenuShowInFolder() 
+// and L228+ in SumatraStartup.cpp
+    long ReplyFilePath(WindowInfo* win, HWND callerHwnd) {
+    if (!HasPermission(Perm_DiskAccess)) {
+        return 0;
+    }
+    if (!win->IsDocLoaded()) {
+        return 0;
+    }
+    if (gPluginMode) {
+        return 0;
+    }
+    auto* ctrl = win->ctrl;
+    auto srcFileName = ctrl->FilePath();
+    if (!srcFileName) {
+        return 0;
+    }
+    // Send active SumatraPDF document file path string back to caller
+    //COPYDATASTRUCT has three members
+    //1 dwData: optional short message. We opt for: 0x44646557 ("DdeW")
+    //2 cbData: data length in bytes
+    //3 lpData: data
+    // Works in SumatraPDF 32bit/64bit and AutoHotkey 32bit/64bit unicode
+    //note: use const for lpData since srcFileName is const, else compiler error
+    //note: use (PVOID) to cast const wchar * to pvoid, else compiler error
+    //note: also works to skip lpData var and use srcFileName directly
+    const WCHAR * lpData = srcFileName;
+    DWORD cbData = (str::Len(lpData) + 1) * sizeof(WCHAR);
+    COPYDATASTRUCT cds = {0x44646557, cbData, (PVOID)lpData};
+
+    LRESULT res = SendMessage(callerHwnd, WM_COPYDATA, 0, (LPARAM)&cds);
+    if (res) {
+        return 1;
+    }
+    return 0;
+}
+
 
 static void OnMenuRenameFile(WindowInfo* win) {
     if (!HasPermission(Perm_DiskAccess)) {
@@ -3762,7 +3876,9 @@ static void OnFrameKeyB(WindowInfo* win) {
     }
 }
 
-static void MakeAnnotationFromSelection(WindowInfo* win) {
+// HighlightJump
+//static void MakeAnnotationFromSelection(WindowInfo* win) {
+static void MakeAnnotationFromSelection(WindowInfo* win, COLORREF c = 0) {
     bool annotsEnabled = gIsDebugBuild || gIsPreReleaseBuild;
     if (!annotsEnabled) {
         return;
@@ -3792,7 +3908,11 @@ static void MakeAnnotationFromSelection(WindowInfo* win) {
     }
     Vec<PageAnnotation>* annots = dm->userAnnots;
     for (SelectionOnPage& sel : *win->currentTab->selectionOnPage) {
-        COLORREF c = gGlobalPrefs->annotationDefaults.highlightColor;
+        // HighlightJump
+        //COLORREF c = gGlobalPrefs->annotationDefaults.highlightColor;
+        // TODO: add step that validates c from parameter
+        if (!c)
+            c = gGlobalPrefs->annotationDefaults.highlightColor;
         c = ColorSetAlpha(c, 0xcc);
         auto addedAnnotation = PageAnnotation(PageAnnotType::Highlight, sel.pageNo, sel.rect, c);
         size_t oldLen = annots->size();
@@ -3810,6 +3930,47 @@ static void MakeAnnotationFromSelection(WindowInfo* win) {
     dm->GetEngine()->UpdateUserAnnotations(dm->userAnnots);
     ClearSearchResult(win); // causes invalidated tiles to be rerendered
 }
+
+
+// HighlightJump
+// make annotation dot with custom color at mouse cursor
+static void MakeAnnotationDotAtCursor(WindowInfo* win, COLORREF c = 0) {
+    bool annotsEnabled = gIsDebugBuild || gIsPreReleaseBuild;
+    if (!annotsEnabled) {
+        return;
+    }
+    // get cursor position, page number and page X Y point
+    PointI cursorPt;
+    if (!GetCursorPosInHwnd(win->hwndCanvas, cursorPt))
+        return;
+    int pageNo = win->AsFixed()->GetPageNoByPoint(cursorPt);
+    // required check, else SumatraPDF crash
+    if (!(pageNo > 0))
+        return;
+    PointD pt = win->AsFixed()->CvtFromScreen(cursorPt);
+    
+    // make temporary dot sized selection
+    // todo: maybe make dotSize relative to pagesize/DPI?
+    int dotSize = 8;
+    RectD dotRect;
+    dotRect.x = pt.x - dotSize/2;
+    dotRect.y = pt.y - dotSize/2;
+    // round
+    dotRect.x = floor(dotRect.x + 0.5);
+    dotRect.y = floor(dotRect.y + 0.5);
+    dotRect.dx = dotSize;
+    dotRect.dy = dotSize;
+    // based on Selection.cpp
+    DeleteOldSelectionInfo(win, true);
+    Vec<SelectionOnPage>* sel = new Vec<SelectionOnPage>();
+    sel->Append(SelectionOnPage(pageNo, &dotRect));
+    win->currentTab->selectionOnPage = sel;
+    win->showSelection = win->currentTab->selectionOnPage != nullptr;
+    
+    // make annotation from temp selection, with color if set
+    MakeAnnotationFromSelection(win, c);
+}
+
 
 static void OnFrameKeyM(WindowInfo* win) {
     // "cursor position" tip: make figuring out the current
@@ -4476,6 +4637,50 @@ static LRESULT FrameOnCommand(WindowInfo* win, HWND hwnd, UINT msg, WPARAM wPara
             else if (win->AsFixed())
                 win->ShowNotification(_TR("Select content with Ctrl+left mouse button"));
             break;
+
+        // HighlightJump
+        // Based on: IDM_COPY_SELECTION
+        case IDC_REPLY_FILE_PATH:
+            //sends pdf file path to WM_COPYDATA to SendMessage caller
+            HWND callerHwnd;
+            callerHwnd = (HWND)lParam;
+            if (win->currentTab)
+                return ReplyFilePath(win, callerHwnd);
+            break;
+
+        // HighlightJump
+        case IDC_ANNOTATE_SEL_COLOR:
+            COLORREF customColor;
+            customColor = (COLORREF)lParam;
+            if (win->currentTab)
+                MakeAnnotationFromSelection(win, customColor);
+            break;
+
+        // HighlightJump
+        case IDC_ANNOTATE_DOT:
+            customColor = (COLORREF)lParam;
+            if (win->currentTab)
+                MakeAnnotationDotAtCursor(win, customColor);
+            break;
+        
+        // HighlightJump
+        case IDC_REPLY_POS:
+            //returns LONG LRESULT to SendMessage caller
+            return GetCursorPosPt(win);
+            break;
+
+        // HighlightJump
+        case IDC_REPLY_PAGE:
+            //returns LONG LRESULT to SendMessage caller
+            return GetCursorPageNo(win);
+            break;
+
+        // HighlightJump
+        case IDC_REPLY_FOREGROUND_PAGE:
+            //returns LONG LRESULT to SendMessage caller
+            return GetForegroundPageNo(win);
+            break;
+
 
         case IDM_SELECT_ALL:
             OnSelectAll(win);
