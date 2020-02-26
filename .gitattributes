@@ -1,0 +1,5 @@
+# make GitHub linguist not label repo as mostly c++
+# https://github.com/github/linguist#detectable
+
+*.cpp linguist-detectable=false
+*.h linguist-detectable=false
