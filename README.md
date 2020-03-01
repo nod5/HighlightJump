@@ -2,7 +2,7 @@
 
 AutoHotkey app to add, remove and jump to color highlights in SumatraPDF  
 
-Version 2020-02-25  -  Free software GPLv3  -  by Nod5  
+Version 2020-03-01  -  Free software GPLv3  -  by Nod5  
   
 [![HighlightJump Feature Overview](https://github.com/nod5/HighlightJump/blob/master/images/HighlightJump_youtube_screenshot.png?raw=true)](https://www.youtube.com/watch?v=AcVI616W5D8)
 
@@ -67,6 +67,7 @@ Edit `HighlightJump.ahk.ini` to change these options and then reload HighlightJu
 - `QShortcut=1` to use `Q` to show quick jump menu.  
 - `SelectionLabel=1` to when creating a quick jump use selection as label in quick jump list.  
 - `CapsLockErase=1` to use `CapsLock (hold)` to remove all highlighting mouse moves over. Use if touchpad palm tracking blocks `E`.  
+- `ColorPicker=1` to use `A (hold)` to show a colorpicker popup.
 
 # License  
 Free Software GPLv3 by github.com/nod5  
@@ -113,7 +114,7 @@ Free Software GPLv3 by github.com/nod5
 When SumatraPDF is in continous page mode and (parts of) multiple pages are visible then  `D`, `E` and `Ctrl + Del` and quick jump shortcuts operate on the page shown in SumatraPDF toolbar. That is sometimes not the page the mouse is over! Keep an eye out for that, otherwise you may add/remove highlights on the wrong page. Issue [#5](https://github.com/nod5/HighlightJump/issues/5).  
 
 # Experimental: improved methods
-HighlightJump has experimental methods to interact with SumatraPDF via SendMessage. Improvements compared to default methods: faster, more reliable, silent, no `FullPathInTitle` setting required, solves the issue in continous page mode (see above).  
+HighlightJump has experimental methods to interact with SumatraPDF via SendMessage. Improvements compared to default methods: faster, more reliable, silent, no `FullPathInTitle` setting required, solves the issue in continous page mode (see above), erasing with `E` removes highlight immediately.  
 
 To try the experimental features:  
 - Edit SumatraPDF C++ source via instructions in folder `SumatraPDF_modifications` and compile as `32-bit Debug` version.  

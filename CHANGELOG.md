@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [2020-03-01] - 2020-03-01
+### Added
+- option: experimental SendMessage methods (remove annotation on page, remove annotation under mouse)
+- option: colorpicker popup for `A (hold)` (.ini setting) instead of default cycle colors one by one
+
 ## [2020-02-25] - 2020-02-25
 ### Added
 - option: experimental SendMessage methods (highlight selection, annotate dot under mouse, get page under mouse, get document canvas X Y pt under mouse, get foreground page). (requires SumatraPDF C++ edits)

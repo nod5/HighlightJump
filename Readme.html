@@ -170,7 +170,7 @@ color: #111;
 <body>
 <h1 id="highlightjump">HighlightJump</h1>
 <p>AutoHotkey app to add, remove and jump to color highlights in SumatraPDF</p>
-<p>Version 2020-02-25 - Free software GPLv3 - by Nod5</p>
+<p>Version 2020-03-01 - Free software GPLv3 - by Nod5</p>
 <p><a href="https://github.com/nod5/HighlightJump/">https://github.com/nod5/HighlightJump/</a></p>
 <p><a href="https://www.youtube.com/watch?v=AcVI616W5D8">Feature overview (YouTube)</a></p>
 <h1 id="setup">Setup</h1>
@@ -218,7 +218,8 @@ Tip: Copy a <code>HighlightJump.ahk</code> shortcut to Startup folder in Windows
 - <code>Experimental=1</code> to use experimental features (requires modified SumatraPDF C++ source)<br />
 - <code>QShortcut=1</code> to use <code>Q</code> to show quick jump menu.<br />
 - <code>SelectionLabel=1</code> to when creating a quick jump use selection as label in quick jump list.<br />
-- <code>CapsLockErase=1</code> to use <code>CapsLock (hold)</code> to remove all highlighting mouse moves over. Use if touchpad palm tracking blocks <code>E</code>.</p>
+- <code>CapsLockErase=1</code> to use <code>CapsLock (hold)</code> to remove all highlighting mouse moves over. Use if touchpad palm tracking blocks <code>E</code>.<br />
+- <code>ColorPicker=1</code> to use <code>A (hold)</code> to show a colorpicker popup.</p>
 <h1 id="license">License</h1>
 <p>Free Software GPLv3 by github.com/nod5</p>
 <h1 id="faq">FAQ</h1>
@@ -249,7 +250,7 @@ Tip: Copy a <code>HighlightJump.ahk</code> shortcut to Startup folder in Windows
 <h1 id="known-issues">Known Issues</h1>
 <p>When SumatraPDF is in continous page mode and (parts of) multiple pages are visible then <code>D</code>, <code>E</code> and <code>Ctrl + Del</code> and quick jump shortcuts operate on the page shown in SumatraPDF toolbar. That is sometimes not the page the mouse is over! Keep an eye out for that, otherwise you may add/remove highlights on the wrong page. Issue <a href="https://github.com/nod5/HighlightJump/issues/5">#5</a>.</p>
 <h1 id="experimental-improved-methods">Experimental: improved methods</h1>
-<p>HighlightJump has experimental methods to interact with SumatraPDF via SendMessage. Improvements compared to default methods: faster, more reliable, silent, no <code>FullPathInTitle</code> setting required, solves the issue in continous page mode (see above).</p>
+<p>HighlightJump has experimental methods to interact with SumatraPDF via SendMessage. Improvements compared to default methods: faster, more reliable, silent, no <code>FullPathInTitle</code> setting required, solves the issue in continous page mode (see above), erasing with <code>E</code> removes highlight immediately.</p>
 <p>To try the experimental features:<br />
 - Edit SumatraPDF C++ source via instructions in folder <code>SumatraPDF_modifications</code> and compile as <code>32-bit Debug</code> version.<br />
 - In <code>HighlightJump.ahk.ini</code> set <code>Experimental=1</code>.</p>
