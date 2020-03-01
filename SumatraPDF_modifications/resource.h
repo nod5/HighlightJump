@@ -183,6 +183,7 @@
 #define IDC_REPLY_POS                   1503
 #define IDC_REPLY_PAGE                  1504
 #define IDC_REPLY_FOREGROUND_PAGE       1505
+#define IDC_REMOVE_ANNOTATION           1506
 
 #define IDB_TOOLBAR                     2000
 #define IDB_RELOADING_CUE               2010

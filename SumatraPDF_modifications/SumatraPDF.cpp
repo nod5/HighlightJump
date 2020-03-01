@@ -3931,6 +3931,66 @@ static void MakeAnnotationFromSelection(WindowInfo* win, COLORREF c = 0) {
     ClearSearchResult(win); // causes invalidated tiles to be rerendered
 }
 
+// HighlightJump
+static void RemoveAnnotation(WindowInfo* win, int pageNo = 0) {
+    bool annotsEnabled = gIsDebugBuild || gIsPreReleaseBuild;
+    if (!annotsEnabled) {
+        return;
+    }
+    DisplayModel* dm = win->AsFixed();
+    if (!dm) {
+        return;
+    }
+    auto engine = dm->GetEngine();
+    if (!engine) {
+        return;
+    }
+    bool ok = engine->supportsAnnotations;
+    if (!ok) {
+        return;
+    }
+    if (!dm->userAnnots)
+        return;
+    
+    // If pageNo parameter then remove all annotations on that page
+    // Else remove all annotations intersected by cursor
+    int removeAllOnPage = (pageNo > 0) ? 1 : 0;
+    
+    // get cursor position, page number and page X Y point
+    PointI cursorPt;
+    if (!GetCursorPosInHwnd(win->hwndCanvas, cursorPt))
+        return;
+    if (!removeAllOnPage)
+        pageNo = win->AsFixed()->GetPageNoByPoint(cursorPt);
+    // required check, else SumatraPDF crash
+    if (!(pageNo > 0))
+        return;
+    PointD pt = win->AsFixed()->CvtFromScreen(cursorPt);
+
+    Vec<PageAnnotation>* annots = dm->userAnnots;
+    size_t oldLen = annots->size();
+    //for (size_t i = 0; i < oldLen && i < annots->size(); ++i) {
+    // To erase from vector during loop we must
+    // update iterator inside loop, https://stackoverflow.com/a/31329841
+    for (size_t i = 0; i < oldLen && i < annots->size();) {
+        // remove annotations under cursor *or* all on page
+        if (annots->at(i).pageNo == pageNo && (removeAllOnPage == 1 || annots->at(i).rect.Contains(pt)) ) {
+            // first invalidate tiles, for later rerender to reflect annotation change
+            gRenderCache.Invalidate(dm, pageNo, annots->at(i).rect);
+            annots->RemoveAtFast(i);
+        }
+        else
+            ++i;
+    }
+
+    if (oldLen != annots->size()) {
+        dm->userAnnotsModified = true;
+        dm->GetEngine()->UpdateUserAnnotations(dm->userAnnots);
+        ClearSearchResult(win); // causes invalidated tiles to be rerendered
+        // maybe: save annotation change here too?
+    }
+}
+
 
 // HighlightJump
 // make annotation dot with custom color at mouse cursor
@@ -4681,6 +4741,11 @@ static LRESULT FrameOnCommand(WindowInfo* win, HWND hwnd, UINT msg, WPARAM wPara
             return GetForegroundPageNo(win);
             break;
 
+        // HighlightJump
+        case IDC_REMOVE_ANNOTATION:
+            if (win->currentTab)
+                RemoveAnnotation(win, lParam);
+            break;
 
         case IDM_SELECT_ALL:
             OnSelectAll(win);
