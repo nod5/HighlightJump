@@ -1,6 +1,6 @@
 ﻿; ---------------------------------------------------------------------
 ; HighlightJump
-; 2020-02-25
+; 2020-03-01
 ; ---------------------------------------------------------------------
 ; AutoHotkey app to add, remove and jump between highlights in SumatraPDF
 ; Free software GPLv3
@@ -55,7 +55,7 @@ if !A_IsCompiled
 vIniFile := A_ScriptFullPath ".ini"
 If !FileExist(vIniFile)
   ; create default ini file
-  FileAppend,[Settings]`nRedGreenRG=1`nExperimental=0`nQShortcut=0`nSelectionLabel=0`nCapsLockErase=0, % vIniFile
+  FileAppend,[Settings]`nRedGreenRG=1`nExperimental=0`nQShortcut=0`nSelectionLabel=0`nCapsLockErase=0´nColorPicker=0, % vIniFile
 
 Hotkey, IfWinActive, ahk_class SUMATRA_PDF_FRAME
 
@@ -115,6 +115,9 @@ IniRead, vCapsLockErase, % vIniFile, Settings, CapsLockErase, %A_Space%
 if vCapsLockErase
   Hotkey, CapsLock, erase_under_mouse, on
 
+; read ini and set ColorPicker on or off (default off, which means cycle color on longpress)
+IniRead, vColorPicker, % vIniFile, Settings, ColorPicker, %A_Space%
+
 Hotkey, IfWinActive, ahk_class SUMATRA_PDF_FRAME
 
 
@@ -135,7 +138,7 @@ vShortcuts =
   (LTrim
   ▄▄▄▄▄▄▄      HighlightJump      ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
   
-  version 2020-02-25    https://github.com/nod5/HighlightJump
+  version 2020-03-01    https://github.com/nod5/HighlightJump
 
   ▄▄▄▄▄▄▄  Keyboard Shortcuts  ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
 
@@ -374,13 +377,18 @@ Return
     Return
   If !vFile or !GetSmx(vSmx, vFile) or !GetPageLen(vPage, vLen) ; ByRef vSmx ; ByRef
     Return
-
   If !vLegacyMethods
     vPage := SmartPageSelect("erase highlights")
 
   If !vPage
     return
 
+  If !vLegacyMethods
+  {
+    SumatraRemoveAnnotationsOnPage(vPage)
+    SaveAnnotationToSmx()
+    Return
+  }
   ; remove each [highlight] that contains "page = <active page number>"
   ; note: RegExReplace defaults to replacing each match
   vOldSmx := vSmx
@@ -414,6 +422,23 @@ e::
   Else
     ; change system cursor to cross during highlight removal
     SetSystemCursor("CROSS")
+
+  If !vLegacyMethods
+  {
+    ; remove annotation under mouse cursor
+    ; note: no sleep in while loop here is more effective
+    If (A_ThisHotkey = "Rbutton & Lbutton")
+      While GetKeyState("Rbutton", "P") and GetKeyState("Lbutton", "P")
+        SumatraRemoveAnnotationAtCursor()
+    Else
+      While GetKeyState(A_ThisHotkey, "P")
+        SumatraRemoveAnnotationAtCursor()
+
+    SaveAnnotationToSmx()
+    ; restore default system cursors
+    SetSystemCursor("")
+    Return
+  }
 
   vIsEpub := 0
   if vLegacyMethods
@@ -740,6 +765,15 @@ Return
 
 
 
+; GUI ColorPicker click event
+click_color:
+  ; get color variable name
+  vFlashcolorVarName := StrReplace(A_GuiControl, "Control", "")
+  ; set color value
+  vFlashcolor := %vFlashcolorVarName%
+  Gui, Destroy
+return
+
 
 ; highlight selected text and save to .smx
 
@@ -758,25 +792,58 @@ Lbutton & Rbutton::  ; yellow, or longpress to cycle
 
   vFlashColor := ""
 
+
+; test color picker popup gui -> click to pick highlight color
+; cancel: Esc or timeout or click not-on-picker
   If (A_ThisLabel = "a") or (A_ThisLabel = "Lbutton & Rbutton")
   {
-    ; start timer to set highlight color based on press duration
-    ; cycles through values yellow -> red -> green
-    
-    t1 := A_TickCount
-    SetTimer, cycle_highlight_color_mode, 10
-    
     vWaitKey := (A_ThisLabel = "a") ? "a" : "Rbutton"
-      KeyWait, % vWaitKey
+    t1 := A_TickCount
+    vPress := ""
 
-    SetTimer, cycle_highlight_color_mode, off
-    Gui, Destroy
+    ; shortpress or longpress?
+    Loop 
+    {
+      KeyWait, % vWaitKey, U T0.02
+      if !ErrorLevel
+        vPress := "short"
+      if (A_TickCount > t1 + 250)
+        vPress := "long"
+      if vPress
+        break
+    }
     
+    ; release mousebuttons, else selection change on mouse moves
     If (A_ThisLabel = "Lbutton & Rbutton")
       Send {Rbutton up}{Lbutton up}
-    
+
+    if (vPress = "short")
+      vFlashcolor := vYellow
+  
+    if (vPress = "long")
+    {
+      ;vColorPicker  := 1
+      if vColorPicker
+      {
+        ; show colorpicker gui and wait for user to click a color
+        ColorPicker(30, 1, "mouse")
+        While WinActive("HJColorPicker ahk_class AutoHotkeyGUI")
+          sleep 5
+        Gui, Destroy
+      }
+      
+      else
+      {
+        ; cycle color mode while key is down
+        ; note: must check physical state because we release mouse button above
+        While, GetKeyState(vWaitKey, "P")
+          vFlashColor := CycleHighlightColor(t1)
+        Gui, Destroy
+      }
+
     If (vFlashColor = "cancel")
       return
+    }
   }
 
   ToggleHighlightsOnOff(vFile, "on")
@@ -863,25 +930,6 @@ Lbutton & Rbutton::  ; yellow, or longpress to cycle
     
     SaveSmx(vFile, vSmx := vOldSmx vNewSmx)
   }
-Return
-
-
-; timer: set highlight color based on button press duration
-cycle_highlight_color_mode:
-  
-  vDuration := A_TickCount - t1
-  
-  if (vDuration >= 1300)
-  {
-    vFlashColor := "cancel"
-    Gui, Destroy
-    Return
-  }
-  vFlashColor := vDuration < 400 ? vYellow : vDuration < 800 ? vRed : vGreen
-
-  if (vFlashColor != vOldFlashColor) and (vDuration > 400)
-    FlashColorSquare(30, vFlashColor, "mouse", 0)
-  vOldFlashColor := vFlashColor
 Return
 
 
@@ -973,24 +1021,82 @@ SupportedExtension(vFile, vSupportedExtensions) {
 
 
 
-; function: briefly flash new jump filter color in colored rectangle
-FlashColorSquare(vSquareSize, vJumpColor, vSquarePos := "window", vTimeout := 1) {
-  vWinId := WinExist("A")
-  If (vSquarePos = "mouse")
+; function: prepare X Y screen position for color GUI
+PrepareGuiPosition(ByRef x, ByRef y, vSquareSize, vSquarePos := "window") {
+ If (vSquarePos = "mouse")
   {
-    ; show square near mouse pointer
+    ; show gui near mouse pointer
     CoordMode, Mouse, Screen
     MouseGetPos, x, y
-    x -= Round(vSquareSize/2)
-    y -= Round(vSquareSize/2)
   }
   Else
   {
-    ; show square in window centre
-    WinGetActiveStats, wint, winw, winh, winx, winy
-    x := Round(winx + winw/2 - vSquareSize/2)
-    y := Round(winy + winh/2 - vSquareSize/2)
+    ; show gui in window centre
+    WinGetPos, vWinX, vWinY, vWinW, vWinH, A
+    ;WinGetActiveStats, vWinT, vWinW, vWinH, vWinX, vWinY
+    x := Round(vWinX + vWinW/2)
+    y := Round(vWinY + vWinH/2)
   }
+  x -= Round(vSquaareSize/2)
+  y -= Round(vSquareSize/2)
+}
+
+
+
+; function: show GUI with grid of color rectangles for user to click on
+ColorPicker(vSquareSize, vColors, vSquarePos := "window") {
+  global vRed, vYellow, vBlue, vGreen
+  Static vYellowControl, vRedControl, vGreenControl, vBlueControl
+  
+  PrepareGuiPosition(x, y, vSquareSize, vSquarePos) ; ByRef x y
+
+  Gui +LastFound +ToolWindow -SysMenu -Caption -resize +AlwaysOnTop
+  ; shorten
+  Gui, Margin, 0, 0
+  ; declare control variables (must be static or global, not local to function)
+  ; note: use progressbar controls to draw colored rectangles
+  ; note: use transparent text control to detect click (because progressbar can't have g-label)
+  ; todo shorten code with loop
+  vSize := vSquareSize
+  Gui, Color, EEAA99
+  WinSet, TransColor, EEAA99
+  Gui, Add, Progress, x0 y0 Section w%vSize% h%vSize% Background%vRed% disabled
+  Gui, Add, Text,     xp yp         w%vSize% h%vSize% BackgroundTrans gclick_color vvRedControl
+  Gui, Add, Progress, ys            w%vSize% h%vSize% Background%vGreen% disabled
+  Gui, Add, Text,     xp yp         w%vSize% h%vSize% BackgroundTrans gclick_color vvGreenControl
+  Gui, Add, Progress, x0 Section    w%vSize% h%vSize% Background%vYellow% disabled
+  Gui, Add, Text,     xp yp         w%vSize% h%vSize% BackgroundTrans gclick_color vvYellowControl
+  ; todo testing disabled these to try transparent gui background
+  ;Gui, Add, Progress, ys            w%vSize% h%vSize% Background%vBlue% disabled
+  ;Gui, Add, Text,     xp yp         w%vSize% h%vSize% BackgroundTrans gclick_color vvBlueControl
+  Gui, Show, % "x" x " y" y " w" vSize*2 " h" vSize*2, HJColorPicker
+}
+
+
+
+; function: set (and flash) highlight color based on button press duration
+CycleHighlightColor(t1) {
+  global vYellow, vRed, vGreen, vBlue
+  static vOldFlashColor
+  vDuration := A_TickCount - t1
+  if (vDuration >= 1300)
+  {
+    vFlashColor := "cancel"
+    Gui, Destroy
+    Return vFlashColor
+  }
+  vFlashColor := vDuration < 400 ? vYellow : vDuration < 800 ? vRed : vGreen
+  if (vFlashColor != vOldFlashColor) and (vDuration > 400)
+    FlashColorSquare(30, vFlashColor, "mouse", 0)
+  vOldFlashColor := vFlashColor
+  Return vFlashColor
+}
+
+; function: briefly flash new jump filter color in colored rectangle
+FlashColorSquare(vSquareSize, vJumpColor, vSquarePos := "window", vTimeout := 1) {
+  vWinId := WinExist("A")
+  PrepareGuiPosition(x, y, vSquareSize, vSquarePos) ; ByRef x y
+
   Gui +ToolWindow -SysMenu -Caption -resize +AlwaysOnTop +Disabled
   Gui, Color, %vJumpColor%
   Gui, Show, x%x% y%y% w%vSquareSize% h%vSquareSize%
@@ -1002,7 +1108,7 @@ FlashColorSquare(vSquareSize, vJumpColor, vSquarePos := "window", vTimeout := 1)
     Gui, Destroy
   }
 }
-Return
+
 
 
 ; function: save new highlight to .smx file
@@ -1342,6 +1448,29 @@ Receive_WM_COPYDATA(wParam, lParam) {
   ; set super-global variable
   vFilepathReturn := lpData
   Return
+}
+
+
+
+
+; function: remove annotation in active SumatraPDF window
+; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
+; IDC_REMOVE_ANNOTATION = 1506
+; note: if lparam is a pagenumber then removes all annotations on that page
+;       if lparam is zero         then removes annotations under mouse cursor
+SumatraRemoveAnnotationAtCursor() {
+  if WinActive("ahk_class SUMATRA_PDF_FRAME")
+    SendMessage, 0x111, 1506, 0,, A
+}
+
+; function: remove all annotations on page vPageNum in active SumatraPDF window
+; dependency: SumatraPDF source code edits in Resource.h , SumatraPDF.cpp
+; IDC_REMOVE_ANNOTATION = 1506
+; note: if lparam is a pagenumber then removes all annotations on that page
+;       if lparam is zero         then removes annotations under mouse cursor
+SumatraRemoveAnnotationsOnPage(vPage) {
+  if WinActive("ahk_class SUMATRA_PDF_FRAME")
+    SendMessage, 0x111, 1506, vPage,, A
 }
 
 
