@@ -1,5 +1,9 @@
 # HighlightJump
 
+***
+:warning: HighlightJump does not work with SumatraPDF versions newer than `SumatraPDF-prerelease-12145-64.exe` released on `2020-02-14`. See [#10-comment](https://github.com/nod5/HighlightJump/issues/10#issuecomment-660672809)
+***
+
 AutoHotkey app to add, remove and jump to color highlights in SumatraPDF  
 
 Version 2020-03-01  -  Free software GPLv3  -  by Nod5  
